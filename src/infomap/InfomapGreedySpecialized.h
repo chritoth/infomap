@@ -281,6 +281,7 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
 		DeltaFlow& oldModuleDelta, DeltaFlow& newModuleDelta)
 {
 	using infomath::plogp;
+  using infomath::plogq;
 	std::vector<FlowType>& moduleFlowData = Super::m_moduleFlowData;
 	unsigned int oldModule = oldModuleDelta.module;
 	unsigned int newModule = newModuleDelta.module;
@@ -307,7 +308,71 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
 			+ plogp(moduleFlowData[newModule].exitFlow + moduleFlowData[newModule].flow \
 					+ current.data.exitFlow + current.data.flow - deltaEnterExitNewModule);
 
-	double deltaL = delta_exit - 2.0*delta_exit_log_exit + delta_flow_log_flow;
+	// for alternative cost function
+  double delta_stay_log_stay = 0.0;
+  double delta_stay_log_flow = 0.0;
+  double delta_leave_log_leave = 0.0;
+  double delta_leave_log_flow = 0.0;
+
+  // substract cost before moving the node
+  double oldModuleStay = 1.0 - moduleFlowData[oldModule].exitFlow;
+  double newModuleStay = 1.0 - moduleFlowData[newModule].exitFlow;
+  double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
+  double newModuleLeave = moduleFlowData[newModule].exitFlow;
+  double oldModuleFlow = moduleFlowData[oldModule].flow;
+  double newModuleFlow = moduleFlowData[newModule].flow;
+
+  delta_stay_log_stay -= \
+			plogp(oldModuleStay) + \
+			plogp(newModuleStay);
+
+  delta_stay_log_flow -= \
+			2.0 * plogq(oldModuleStay, oldModuleFlow) + \
+			2.0 * plogq(newModuleStay, newModuleFlow);
+
+  delta_leave_log_leave -= \
+			plogp(oldModuleLeave) + \
+			plogp(newModuleLeave);
+
+  delta_leave_log_flow -= \
+			plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow)) + \
+			plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
+
+  // add cost after moving the node
+  oldModuleLeave = moduleFlowData[oldModule].exitFlow - current.data.exitFlow + deltaEnterExitOldModule;
+  newModuleLeave = moduleFlowData[newModule].exitFlow + current.data.exitFlow - deltaEnterExitNewModule;
+  oldModuleStay = 1.0 - oldModuleLeave;
+  newModuleStay = 1.0 - newModuleLeave;
+  oldModuleFlow = moduleFlowData[oldModule].flow - current.data.flow;
+  newModuleFlow = moduleFlowData[newModule].flow + current.data.flow;
+
+  delta_stay_log_stay -= \
+			plogp(oldModuleStay) + \
+			plogp(newModuleStay);
+
+  delta_stay_log_flow -= \
+			2.0 * plogq(oldModuleStay, oldModuleFlow) + \
+			2.0 * plogq(newModuleStay, newModuleFlow);
+
+  delta_leave_log_leave -= \
+			plogp(oldModuleLeave) + \
+			plogp(newModuleLeave);
+
+  delta_leave_log_flow -= \
+			plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow)) + \
+			plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
+
+
+  double deltaL;
+  if (m_config.altmap)
+  {
+    deltaL = delta_stay_log_stay - delta_stay_log_flow + delta_leave_log_leave - delta_leave_log_flow;
+  }
+  else
+  {
+    deltaL = delta_exit - 2.0*delta_exit_log_exit + delta_flow_log_flow;
+  }
+
 	return deltaL;
 }
 
@@ -377,6 +442,7 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
 		DeltaFlow& oldModuleDelta, DeltaFlow& newModuleDelta)
 {
 	using infomath::plogp;
+  using infomath::plogq;
 	std::vector<FlowType>& moduleFlowData = Super::m_moduleFlowData;
 	unsigned int oldModule = oldModuleDelta.module;
 	unsigned int newModule = newModuleDelta.module;
@@ -397,7 +463,28 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
 			plogp(moduleFlowData[oldModule].exitFlow + moduleFlowData[oldModule].flow) + \
 			plogp(moduleFlowData[newModule].exitFlow + moduleFlowData[newModule].flow);
 
+	// for alternative cost function
+  double oldModuleStay = 1.0 - moduleFlowData[oldModule].exitFlow;
+  double newModuleStay = 1.0 - moduleFlowData[newModule].exitFlow;
+  double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
+  double newModuleLeave = moduleFlowData[newModule].exitFlow;
+	stay_log_stay -= \
+			plogp(oldModuleStay) + \
+			plogp(newModuleStay);
 
+  stay_log_flow -= \
+			2.0 * plogq(oldModuleStay, moduleFlowData[oldModule].flow) + \
+			2.0 * plogq(newModuleStay, moduleFlowData[newModule].flow);
+
+  leave_log_leave -= \
+			plogp(oldModuleLeave) + \
+			plogp(newModuleLeave);
+
+  leave_log_flow -= \
+			plogq(oldModuleLeave, moduleFlowData[oldModule].flow * (1.0 - moduleFlowData[oldModule].flow)) + \
+			plogq(newModuleLeave, moduleFlowData[newModule].flow * (1.0 - moduleFlowData[newModule].flow));
+
+  // move node
 	moduleFlowData[oldModule] -= current.data;
 	moduleFlowData[newModule] += current.data;
 
@@ -416,9 +503,38 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
 
 	enterFlow_log_enterFlow = plogp(enterFlow);
 
-	indexCodelength = enterFlow_log_enterFlow - exit_log_exit - exitNetworkFlow_log_exitNetworkFlow;
-	moduleCodelength = -exit_log_exit + flow_log_flow - nodeFlow_log_nodeFlow;
-	codelength = indexCodelength + moduleCodelength;
+  // for alternative cost function
+  oldModuleStay = 1.0 - moduleFlowData[oldModule].exitFlow;
+  newModuleStay = 1.0 - moduleFlowData[newModule].exitFlow;
+  oldModuleLeave = moduleFlowData[oldModule].exitFlow;
+  newModuleLeave = moduleFlowData[newModule].exitFlow;
+  stay_log_stay += \
+			plogp(oldModuleStay) + \
+			plogp(newModuleStay);
+
+  stay_log_flow += \
+			2.0 * plogq(oldModuleStay, moduleFlowData[oldModule].flow) + \
+			2.0 * plogq(newModuleStay, moduleFlowData[newModule].flow);
+
+  leave_log_leave += \
+			plogp(oldModuleLeave) + \
+			plogp(newModuleLeave);
+
+  leave_log_flow += \
+			plogq(oldModuleLeave, moduleFlowData[oldModule].flow * (1.0 - moduleFlowData[oldModule].flow)) + \
+			plogq(newModuleLeave, moduleFlowData[newModule].flow * (1.0 - moduleFlowData[newModule].flow));
+
+  if (m_config.altmap)
+  {
+    indexCodelength = 0.0;
+    moduleCodelength = stay_log_stay - stay_log_flow + leave_log_leave - leave_log_flow;
+  }
+  else
+  {
+    indexCodelength = enterFlow_log_enterFlow - exit_log_exit - exitNetworkFlow_log_exitNetworkFlow;
+    moduleCodelength = -exit_log_exit + flow_log_flow - nodeFlow_log_nodeFlow;
+  }
+  codelength = indexCodelength + moduleCodelength;
 }
 
 template<typename FlowType>

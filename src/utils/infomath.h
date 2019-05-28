@@ -46,6 +46,12 @@ namespace infomath
 		return p > 0.0 ? p * log2(p) : 0.0;
 	}
 
+  inline
+  double plogq(double p, double q)
+  {
+    return q > 0.0 ? p * log2(q) : 0.0;
+  }
+
 
 	/**
 	 * Get a random permutation of indices of the size of the input vector

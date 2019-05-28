@@ -254,16 +254,35 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
 	if (totalParentFlow < 1e-16)
 		return 0.0;
 
-	double indexLength = 0.0;
-	// For each child
-	for (NodeBase::const_sibling_iterator childIt(parent.begin_child()), endIt(parent.end_child());
-			childIt != endIt; ++childIt)
-	{
-		indexLength -= infomath::plogp(getNode(*childIt).data.flow / totalParentFlow);
-	}
-	indexLength -= infomath::plogp(parentExit / totalParentFlow);
+  double indexLength = 0.0;
+  if (m_config.altmap)
+  {
+    // For each child
+    for (NodeBase::const_sibling_iterator childIt(parent.begin_child()), endIt(parent.end_child());
+         childIt != endIt; ++childIt)
+    {
+      double childExit = getNode(*childIt).data.exitFlow;
+      double childStay = 1.0 - childExit;
+      double childFlow = getNode(*childIt).data.flow;
 
-	indexLength *= totalParentFlow;
+      indexLength += infomath::plogp(childStay);
+      indexLength -= 2.0 * infomath::plogq(childStay, childFlow);
+      indexLength += infomath::plogp(childExit);
+      indexLength -= infomath::plogq(childExit, childFlow * (1 - childFlow));
+    }
+  }
+  else
+  {
+    // For each child
+    for (NodeBase::const_sibling_iterator childIt(parent.begin_child()), endIt(parent.end_child());
+         childIt != endIt; ++childIt)
+    {
+      indexLength -= infomath::plogp(getNode(*childIt).data.flow / totalParentFlow);
+    }
+    indexLength -= infomath::plogp(parentExit / totalParentFlow);
+
+    indexLength *= totalParentFlow;
+  }
 
 	return indexLength;
 }
@@ -336,6 +355,10 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
 	Super::flow_log_flow = 0.0;
 	Super::exit_log_exit = 0.0;
 	Super::enterFlow = 0.0;
+  Super::stay_log_stay = 0.0;
+  Super::leave_log_leave = 0.0;
+  Super::stay_log_flow = 0.0;
+  Super::leave_log_flow = 0.0;
 
 	// For each module
 	for (typename Super::activeNetwork_iterator it(Super::m_activeNetwork.begin()), itEnd(Super::m_activeNetwork.end());
@@ -349,15 +372,30 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
 		Super::enter_log_enter += infomath::plogp(node.data.enterFlow);
 		Super::exit_log_exit += infomath::plogp(node.data.exitFlow);
 		Super::enterFlow += node.data.enterFlow;
+
+		// used for alternative cost function
+		double nodeStay = 1.0 - node.data.exitFlow;
+    Super::stay_log_stay += infomath::plogp(nodeStay);
+    Super::leave_log_leave += infomath::plogp(node.data.exitFlow);
+    Super::stay_log_flow += 2.0 * infomath::plogq(nodeStay, node.data.flow);
+    Super::leave_log_flow += infomath::plogq(node.data.exitFlow, node.data.flow * (1 - node.data.flow));
 	}
 	Super::enterFlow += Super::exitNetworkFlow;
 	Super::enterFlow_log_enterFlow = infomath::plogp(Super::enterFlow);
 
 	derived().calculateNodeFlow_log_nodeFlowForMemoryNetwork();
 
-	Super::indexCodelength = Super::enterFlow_log_enterFlow - Super::enter_log_enter - Super::exitNetworkFlow_log_exitNetworkFlow;
-	Super::moduleCodelength = -Super::exit_log_exit + Super::flow_log_flow - Super::nodeFlow_log_nodeFlow;
-	Super::codelength = Super::indexCodelength + Super::moduleCodelength;
+  if (m_config.altmap)
+  {
+    Super::indexCodelength = 0.0;
+    Super::moduleCodelength = Super::stay_log_stay - Super::stay_log_flow + Super::leave_log_leave - Super::leave_log_flow;
+  }
+  else
+  {
+    Super::indexCodelength = Super::enterFlow_log_enterFlow - Super::enter_log_enter - Super::exitNetworkFlow_log_exitNetworkFlow;
+    Super::moduleCodelength = -Super::exit_log_exit + Super::flow_log_flow - Super::nodeFlow_log_nodeFlow;
+  }
+  Super::codelength = Super::indexCodelength + Super::moduleCodelength;
 }
 
 template<typename InfomapGreedyDerivedType>
