@@ -12,7 +12,7 @@ cmake-build-debug/
 /build
 /include
 /lib
-/.idea
+**/.idea
 /.project
 /.cproject
 /.settings
