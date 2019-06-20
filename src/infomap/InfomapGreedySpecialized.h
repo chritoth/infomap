@@ -366,7 +366,7 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
   double deltaL;
   if (m_config.altmap)
   {
-    deltaL = delta_stay_log_stay - delta_stay_log_flow;// + delta_leave_log_leave - delta_leave_log_flow;
+    deltaL = delta_stay_log_stay - delta_stay_log_flow + delta_leave_log_leave - delta_leave_log_flow;
   }
   else
   {
@@ -527,7 +527,7 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
   if (m_config.altmap)
   {
     indexCodelength = 0.0;
-    moduleCodelength = stay_log_stay - stay_log_flow;// + leave_log_leave - leave_log_flow;
+    moduleCodelength = stay_log_stay - stay_log_flow + leave_log_leave - leave_log_flow;
   }
   else
   {

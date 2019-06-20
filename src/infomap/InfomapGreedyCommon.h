@@ -267,8 +267,8 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
 
       indexLength += infomath::plogp(childStay);
       indexLength -= 2.0 * infomath::plogq(childStay, childFlow);
-      //indexLength += infomath::plogp(childExit);
-      //indexLength -= infomath::plogq(childExit, childFlow * (1 - childFlow));
+      indexLength += infomath::plogp(childExit);
+      indexLength -= infomath::plogq(childExit, childFlow * (1 - childFlow));
     }
   }
   else
@@ -388,7 +388,7 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
   if (m_config.altmap)
   {
     Super::indexCodelength = 0.0;
-    Super::moduleCodelength = Super::stay_log_stay - Super::stay_log_flow;// + Super::leave_log_leave - Super::leave_log_flow;
+    Super::moduleCodelength = Super::stay_log_stay - Super::stay_log_flow + Super::leave_log_leave - Super::leave_log_flow;
   }
   else
   {
