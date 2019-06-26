@@ -235,6 +235,8 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnAll
 		sumCodelength += node.codelength;
 	}
 
+
+  Log() << "\n--> cConAllNodesInTree: " << sumCodelength << "";
 	return sumCodelength;
 }
 
@@ -257,23 +259,17 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
   double indexLength = 0.0;
   if (m_config.altmap)
   {
-    // For each child
-    for (NodeBase::const_sibling_iterator childIt(parent.begin_child()), endIt(parent.end_child());
-         childIt != endIt; ++childIt)
-    {
-      double childExit = getNode(*childIt).data.exitFlow;
-      double childStay = 1.0 - childExit;
-      double childFlow = getNode(*childIt).data.flow;
+    // handle numerical issues
+    if (parentFlow < 1e-16 || (parentFlow + 1e-16) >= 1.0)
+      return 0.0;
 
-      indexLength += infomath::plogp(childStay);
-      indexLength -= 2.0 * infomath::plogq(childStay, childFlow);
-      indexLength += infomath::plogp(childExit);
-      indexLength -= infomath::plogq(childExit, childFlow * (1 - childFlow));
-    }
+    double parentStay = 1.0 - parentExit;
+    indexLength += -infomath::plogp(parentStay) + 2.0 * infomath::plogq(parentStay, parentFlow);
+    indexLength += -infomath::plogp(parentExit) + infomath::plogq(parentExit, parentFlow * (1 - parentFlow));
   }
   else
   {
-    // For each child
+    // For each child -> Eq. 12 from "Multilevel Compression of Random Walks on Networks..."
     for (NodeBase::const_sibling_iterator childIt(parent.begin_child()), endIt(parent.end_child());
          childIt != endIt; ++childIt)
     {
@@ -283,6 +279,8 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
 
     indexLength *= totalParentFlow;
   }
+
+  Log() << "\n--> cConModuleOfLeafNodes: Cost =" << indexLength << std::endl << std::flush;
 
 	return indexLength;
 }
@@ -303,6 +301,14 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
 	// Expanded format
 	// L = q * -log(q) - q * -log(T) + SUM( p * -log(p) - p * -log(T) ) = T * log(T) - q*log(q) - SUM( p*log(p) )
 	// As T is not known, use expanded format to avoid two loops
+
+	if (m_config.altmap)
+  {
+	  // not applicable to two-level implementation
+	  Log() << "\n--> cCOnModuleOfModules: Cost =" << 0.0 << std::endl << std::flush;
+    return 0.0;
+  }
+
 	double sumEnter = 0.0;
 	double sumEnterLogEnter = 0.0;
 	for (NodeBase::const_sibling_iterator childIt(parent.begin_child()), endIt(parent.end_child());
@@ -372,13 +378,6 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
 		Super::enter_log_enter += infomath::plogp(node.data.enterFlow);
 		Super::exit_log_exit += infomath::plogp(node.data.exitFlow);
 		Super::enterFlow += node.data.enterFlow;
-
-		// used for alternative cost function
-		double nodeStay = 1.0 - node.data.exitFlow;
-    Super::stay_log_stay += infomath::plogp(nodeStay);
-    Super::leave_log_leave += infomath::plogp(node.data.exitFlow);
-    Super::stay_log_flow += 2.0 * infomath::plogq(nodeStay, node.data.flow);
-    Super::leave_log_flow += infomath::plogq(node.data.exitFlow, node.data.flow * (1 - node.data.flow));
 	}
 	Super::enterFlow += Super::exitNetworkFlow;
 	Super::enterFlow_log_enterFlow = infomath::plogp(Super::enterFlow);
@@ -387,8 +386,30 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
 
   if (m_config.altmap)
   {
+    double moduleFlow = 0.0;
+    double moduleExit = 0.0;
+    for (typename Super::activeNetwork_iterator it(Super::m_activeNetwork.begin()), itEnd(Super::m_activeNetwork.end());
+         it != itEnd; ++it)
+    {
+      NodeType& node = getNode(**it);
+
+      // we are looking at nodes here (each node is a modules)
+      moduleFlow += node.data.flow;
+      moduleExit += node.data.exitFlow;
+    }
+    double moduleStay = 1.0 - moduleExit;
+
+    // handle numerical issues
+    if (moduleFlow > 1e-16 && (moduleFlow + 1e-16) < 1.0)
+    {
+      Super::stay_log_stay += infomath::plogp(moduleStay);
+      Super::stay_log_flow += 2.0 * infomath::plogq(moduleStay, moduleFlow);
+      Super::leave_log_leave += infomath::plogp(moduleExit);
+      Super::leave_log_flow += infomath::plogq(moduleExit, moduleFlow * (1.0 - moduleFlow));
+    }
+
     Super::indexCodelength = 0.0;
-    Super::moduleCodelength = Super::stay_log_stay - Super::stay_log_flow + Super::leave_log_leave - Super::leave_log_flow;
+    Super::moduleCodelength = -Super::stay_log_stay + Super::stay_log_flow - Super::leave_log_leave + Super::leave_log_flow;
   }
   else
   {
@@ -396,6 +417,9 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
     Super::moduleCodelength = -Super::exit_log_exit + Super::flow_log_flow - Super::nodeFlow_log_nodeFlow;
   }
   Super::codelength = Super::indexCodelength + Super::moduleCodelength;
+  Log() << "\n--> cCfromActiveNetwork: " << Super::codelength << std::endl << std::flush;
+
+
 }
 
 template<typename InfomapGreedyDerivedType>

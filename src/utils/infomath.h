@@ -49,7 +49,12 @@ namespace infomath
   inline
   double plogq(double p, double q)
   {
-    return q > 0.0 ? p * log2(q) : 0.0;
+	  if (q == 0.0)
+    {
+	    Log() << "plogq: Unexpected zero operand. q = " << q << " , p = " << p << std::endl << std::flush;
+	    return 0.0;
+    }
+    return p * log2(q);
   }
 
 

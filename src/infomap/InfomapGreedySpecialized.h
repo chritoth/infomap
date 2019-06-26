@@ -308,71 +308,69 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
 			+ plogp(moduleFlowData[newModule].exitFlow + moduleFlowData[newModule].flow \
 					+ current.data.exitFlow + current.data.flow - deltaEnterExitNewModule);
 
-	// for alternative cost function
+  double deltaL;
+  if (!m_config.altmap)
+  {
+    deltaL = delta_exit - 2.0*delta_exit_log_exit + delta_flow_log_flow;
+    return deltaL;
+  }
+
+
+  // for alternative cost function
   double delta_stay_log_stay = 0.0;
   double delta_stay_log_flow = 0.0;
   double delta_leave_log_leave = 0.0;
   double delta_leave_log_flow = 0.0;
 
-  // substract cost before moving the node
-  double oldModuleStay = 1.0 - moduleFlowData[oldModule].exitFlow;
-  double newModuleStay = 1.0 - moduleFlowData[newModule].exitFlow;
-  double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
-  double newModuleLeave = moduleFlowData[newModule].exitFlow;
   double oldModuleFlow = moduleFlowData[oldModule].flow;
   double newModuleFlow = moduleFlowData[newModule].flow;
+  double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
+  double newModuleLeave = moduleFlowData[newModule].exitFlow;
+  double oldModuleStay = 1.0 - oldModuleLeave;
+  double newModuleStay = 1.0 - newModuleLeave;
 
-  delta_stay_log_stay -= \
-			plogp(oldModuleStay) + \
-			plogp(newModuleStay);
+  // substract cost of the current state before moving the node (considering numerical issues)
+  if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
+  {
+    delta_stay_log_stay -= plogp(oldModuleStay);
+    delta_stay_log_flow -= 2.0 * plogq(oldModuleStay, oldModuleFlow);
+    delta_leave_log_leave -= plogp(oldModuleLeave);
+    delta_leave_log_flow -= plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow));
+  }
+  if (newModuleFlow > 1e-16 && (newModuleFlow + 1e-16) < 1.0)
+  {
+    delta_stay_log_stay -= plogp(newModuleStay);
+    delta_stay_log_flow -= 2.0 * plogq(newModuleStay, newModuleFlow);
+    delta_leave_log_leave -= plogp(newModuleLeave);
+    delta_leave_log_flow -= plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
+  }
 
-  delta_stay_log_flow -= \
-			2.0 * plogq(oldModuleStay, oldModuleFlow) + \
-			2.0 * plogq(newModuleStay, newModuleFlow);
-
-  delta_leave_log_leave -= \
-			plogp(oldModuleLeave) + \
-			plogp(newModuleLeave);
-
-  delta_leave_log_flow -= \
-			plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow)) + \
-			plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
-
-  // add cost after moving the node
+  // update flow data when moving the node
+  oldModuleFlow = moduleFlowData[oldModule].flow - current.data.flow;
+  newModuleFlow = moduleFlowData[newModule].flow + current.data.flow;
   oldModuleLeave = moduleFlowData[oldModule].exitFlow - current.data.exitFlow + deltaEnterExitOldModule;
   newModuleLeave = moduleFlowData[newModule].exitFlow + current.data.exitFlow - deltaEnterExitNewModule;
   oldModuleStay = 1.0 - oldModuleLeave;
   newModuleStay = 1.0 - newModuleLeave;
-  oldModuleFlow = moduleFlowData[oldModule].flow - current.data.flow;
-  newModuleFlow = moduleFlowData[newModule].flow + current.data.flow;
 
-  delta_stay_log_stay -= \
-			plogp(oldModuleStay) + \
-			plogp(newModuleStay);
-
-  delta_stay_log_flow -= \
-			2.0 * plogq(oldModuleStay, oldModuleFlow) + \
-			2.0 * plogq(newModuleStay, newModuleFlow);
-
-  delta_leave_log_leave -= \
-			plogp(oldModuleLeave) + \
-			plogp(newModuleLeave);
-
-  delta_leave_log_flow -= \
-			plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow)) + \
-			plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
-
-
-  double deltaL;
-  if (m_config.altmap)
+  // add cost of the new state after moving the node (considering numerical issues)
+  if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
   {
-    deltaL = delta_stay_log_stay - delta_stay_log_flow + delta_leave_log_leave - delta_leave_log_flow;
+    delta_stay_log_stay += plogp(oldModuleStay);
+    delta_stay_log_flow += 2.0 * plogq(oldModuleStay, oldModuleFlow);
+    delta_leave_log_leave += plogp(oldModuleLeave);
+    delta_leave_log_flow += plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow));
   }
-  else
+  if (newModuleFlow > 1e-16 && (newModuleFlow + 1e-16) < 1.0)
   {
-    deltaL = delta_exit - 2.0*delta_exit_log_exit + delta_flow_log_flow;
+    delta_stay_log_stay += plogp(newModuleStay);
+    delta_stay_log_flow += 2.0 * plogq(newModuleStay, newModuleFlow);
+    delta_leave_log_leave += plogp(newModuleLeave);
+    delta_leave_log_flow += plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
   }
 
+  deltaL = delta_stay_log_stay - delta_stay_log_flow + delta_leave_log_leave - delta_leave_log_flow;
+  Log() << "\n--> getDeltaCodelengthOnMovingNode: deltaL =" << deltaL << std::endl << std::flush;
 	return deltaL;
 }
 
@@ -463,28 +461,31 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
 			plogp(moduleFlowData[oldModule].exitFlow + moduleFlowData[oldModule].flow) + \
 			plogp(moduleFlowData[newModule].exitFlow + moduleFlowData[newModule].flow);
 
-	// for alternative cost function
-  double oldModuleStay = 1.0 - moduleFlowData[oldModule].exitFlow;
-  double newModuleStay = 1.0 - moduleFlowData[newModule].exitFlow;
+  // for alternative cost function
+  double oldModuleFlow = moduleFlowData[oldModule].flow;
+  double newModuleFlow = moduleFlowData[newModule].flow;
   double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
   double newModuleLeave = moduleFlowData[newModule].exitFlow;
-	stay_log_stay -= \
-			plogp(oldModuleStay) + \
-			plogp(newModuleStay);
+  double oldModuleStay = 1.0 - oldModuleLeave;
+  double newModuleStay = 1.0 - newModuleLeave;
 
-  stay_log_flow -= \
-			2.0 * plogq(oldModuleStay, moduleFlowData[oldModule].flow) + \
-			2.0 * plogq(newModuleStay, moduleFlowData[newModule].flow);
+  // substract cost of the current state before moving the node (considering numerical issues)
+  if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
+  {
+    stay_log_stay -= plogp(oldModuleStay);
+    stay_log_flow -= 2.0 * plogq(oldModuleStay, oldModuleFlow);
+    leave_log_leave -= plogp(oldModuleLeave);
+    leave_log_flow -= plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow));
+  }
+  if (newModuleFlow > 1e-16 && (newModuleFlow + 1e-16) < 1.0)
+  {
+    stay_log_stay -= plogp(newModuleStay);
+    stay_log_flow -= 2.0 * plogq(newModuleStay, newModuleFlow);
+    leave_log_leave -= plogp(newModuleLeave);
+    leave_log_flow -= plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
+  }
 
-  leave_log_leave -= \
-			plogp(oldModuleLeave) + \
-			plogp(newModuleLeave);
-
-  leave_log_flow -= \
-			plogq(oldModuleLeave, moduleFlowData[oldModule].flow * (1.0 - moduleFlowData[oldModule].flow)) + \
-			plogq(newModuleLeave, moduleFlowData[newModule].flow * (1.0 - moduleFlowData[newModule].flow));
-
-  // move node
+  // update flow data when moving the node
 	moduleFlowData[oldModule] -= current.data;
 	moduleFlowData[newModule] += current.data;
 
@@ -503,37 +504,42 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
 
 	enterFlow_log_enterFlow = plogp(enterFlow);
 
-  // for alternative cost function
-  oldModuleStay = 1.0 - moduleFlowData[oldModule].exitFlow;
-  newModuleStay = 1.0 - moduleFlowData[newModule].exitFlow;
+  // update flow data when moving the node
+  oldModuleFlow = moduleFlowData[oldModule].flow;
+  newModuleFlow = moduleFlowData[newModule].flow;
   oldModuleLeave = moduleFlowData[oldModule].exitFlow;
   newModuleLeave = moduleFlowData[newModule].exitFlow;
-  stay_log_stay += \
-			plogp(oldModuleStay) + \
-			plogp(newModuleStay);
+  oldModuleStay = 1.0 - oldModuleLeave;
+  newModuleStay = 1.0 - newModuleLeave;
 
-  stay_log_flow += \
-			2.0 * plogq(oldModuleStay, moduleFlowData[oldModule].flow) + \
-			2.0 * plogq(newModuleStay, moduleFlowData[newModule].flow);
-
-  leave_log_leave += \
-			plogp(oldModuleLeave) + \
-			plogp(newModuleLeave);
-
-  leave_log_flow += \
-			plogq(oldModuleLeave, moduleFlowData[oldModule].flow * (1.0 - moduleFlowData[oldModule].flow)) + \
-			plogq(newModuleLeave, moduleFlowData[newModule].flow * (1.0 - moduleFlowData[newModule].flow));
+  // add cost of the new state after moving the node (considering numerical issues)
+  if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
+  {
+    stay_log_stay += plogp(oldModuleStay);
+    stay_log_flow += 2.0 * plogq(oldModuleStay, oldModuleFlow);
+    leave_log_leave += plogp(oldModuleLeave);
+    leave_log_flow += plogq(oldModuleLeave, oldModuleFlow * (1.0 - oldModuleFlow));
+  }
+  if (newModuleFlow > 1e-16 && (newModuleFlow + 1e-16) < 1.0)
+  {
+    stay_log_stay += plogp(newModuleStay);
+    stay_log_flow += 2.0 * plogq(newModuleStay, newModuleFlow);
+    leave_log_leave += plogp(newModuleLeave);
+    leave_log_flow += plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
+  }
 
   if (m_config.altmap)
   {
     indexCodelength = 0.0;
-    moduleCodelength = stay_log_stay - stay_log_flow + leave_log_leave - leave_log_flow;
+    moduleCodelength -= -stay_log_stay + stay_log_flow - leave_log_leave + leave_log_flow;
   }
   else
   {
     indexCodelength = enterFlow_log_enterFlow - exit_log_exit - exitNetworkFlow_log_exitNetworkFlow;
     moduleCodelength = -exit_log_exit + flow_log_flow - nodeFlow_log_nodeFlow;
   }
+
+  Log() << "\n--> updateCodelengthOnMovingNode: codelength =" << codelength << std::endl << std::flush;
   codelength = indexCodelength + moduleCodelength;
 }
 
