@@ -1322,7 +1322,7 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 	}
 
 	double oldCodelength = oneLevelCodelength;
-	double compression = (oldCodelength - codelength)/oldCodelength;
+	double compression = (oldCodelength - codelength)/std::abs(oldCodelength);
 	if (verbose)
 		Log(0,0) << (compression * 100) << "% " << std::flush;
 
@@ -1343,7 +1343,7 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 						(codelength > oldCodelength - initialCodelength*m_config.minimumRelativeTuneIterationImprovement ||
 								codelength > oldCodelength - m_config.minimumCodelengthImprovement))
 					break;
-				compression = (oldCodelength - codelength)/oldCodelength;
+				compression = (oldCodelength - codelength)/std::abs(oldCodelength);
 				if (verbose)
 					Log(0,0) << (compression * 100) << "% " << std::flush;
 				oldCodelength = codelength;
@@ -1356,7 +1356,7 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 				if (codelength > oldCodelength - initialCodelength*m_config.minimumRelativeTuneIterationImprovement ||
 						codelength > oldCodelength - m_config.minimumCodelengthImprovement)
 					break;
-				compression = (oldCodelength - codelength)/oldCodelength;
+				compression = (oldCodelength - codelength)/std::abs(oldCodelength);
 				if (verbose)
 					Log(0,0) << (compression * 100) << "% " << std::flush;
 				oldCodelength = codelength;

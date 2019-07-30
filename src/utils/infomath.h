@@ -51,8 +51,8 @@ namespace infomath
   {
 	  if (q == 0.0)
     {
-	    Log() << "plogq: Unexpected zero operand. q = " << q << " , p = " << p << std::endl << std::flush;
-	    return 0.0;
+	    Log() << "plogq: Unexpected zero operand. p = " << p << " , q = " << q << std::endl << std::flush;
+	    return -1e18;
     }
     return p * log2(q);
   }

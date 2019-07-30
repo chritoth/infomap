@@ -235,8 +235,6 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnAll
 		sumCodelength += node.codelength;
 	}
 
-
-  Log() << "\n--> cConAllNodesInTree: " << sumCodelength << "";
 	return sumCodelength;
 }
 
@@ -263,9 +261,9 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
     if (parentFlow < 1e-16 || (parentFlow + 1e-16) >= 1.0)
       return 0.0;
 
-    double parentStay = 1.0 - parentExit;
+    double parentStay = parentFlow - parentExit;
     indexLength += -infomath::plogp(parentStay) + 2.0 * infomath::plogq(parentStay, parentFlow);
-    indexLength += -infomath::plogp(parentExit) + infomath::plogq(parentExit, parentFlow * (1 - parentFlow));
+    indexLength += -infomath::plogp(parentExit) + infomath::plogq(parentExit, parentFlow * (1.0 - parentFlow));
   }
   else
   {
@@ -279,8 +277,6 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
 
     indexLength *= totalParentFlow;
   }
-
-  Log() << "\n--> cConModuleOfLeafNodes: Cost =" << indexLength << std::endl << std::flush;
 
 	return indexLength;
 }
@@ -305,8 +301,7 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnMod
 	if (m_config.altmap)
   {
 	  // not applicable to two-level implementation
-	  Log() << "\n--> cCOnModuleOfModules: Cost =" << 0.0 << std::endl << std::flush;
-    return 0.0;
+	  return 0.0;
   }
 
 	double sumEnter = 0.0;
@@ -386,26 +381,22 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
 
   if (m_config.altmap)
   {
-    double moduleFlow = 0.0;
-    double moduleExit = 0.0;
     for (typename Super::activeNetwork_iterator it(Super::m_activeNetwork.begin()), itEnd(Super::m_activeNetwork.end());
          it != itEnd; ++it)
     {
       NodeType& node = getNode(**it);
+      double moduleFlow = node.data.flow;
+      double moduleExit = node.data.exitFlow;
+      double moduleStay = moduleFlow - moduleExit;
 
-      // we are looking at nodes here (each node is a modules)
-      moduleFlow += node.data.flow;
-      moduleExit += node.data.exitFlow;
-    }
-    double moduleStay = 1.0 - moduleExit;
-
-    // handle numerical issues
-    if (moduleFlow > 1e-16 && (moduleFlow + 1e-16) < 1.0)
-    {
-      Super::stay_log_stay += infomath::plogp(moduleStay);
-      Super::stay_log_flow += 2.0 * infomath::plogq(moduleStay, moduleFlow);
-      Super::leave_log_leave += infomath::plogp(moduleExit);
-      Super::leave_log_flow += infomath::plogq(moduleExit, moduleFlow * (1.0 - moduleFlow));
+      // handle numerical issues
+      if (moduleFlow > 1e-16 && (moduleFlow + 1e-16) < 1.0)
+      {
+        Super::stay_log_stay += infomath::plogp(moduleStay);
+        Super::stay_log_flow += 2.0 * infomath::plogq(moduleStay, moduleFlow);
+        Super::leave_log_leave += infomath::plogp(moduleExit);
+        Super::leave_log_flow += infomath::plogq(moduleExit, moduleFlow * (1.0 - moduleFlow));
+      }
     }
 
     Super::indexCodelength = 0.0;
@@ -417,9 +408,6 @@ void InfomapGreedyCommon<InfomapGreedyDerivedType>::calculateCodelengthFromActiv
     Super::moduleCodelength = -Super::exit_log_exit + Super::flow_log_flow - Super::nodeFlow_log_nodeFlow;
   }
   Super::codelength = Super::indexCodelength + Super::moduleCodelength;
-  Log() << "\n--> cCfromActiveNetwork: " << Super::codelength << std::endl << std::flush;
-
-
 }
 
 template<typename InfomapGreedyDerivedType>
@@ -677,8 +665,19 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
 				Super::m_emptyModules.push_back(current.index);
 			}
 
-			Super::updateCodelengthOnMovingNode(current, oldModuleDelta, bestDeltaModule);
+			if (m_config.altmap && m_config.verbosity)
+      {
+        Log() << "\n--> tryMoveEachNode: bestDeltaCodelength =" << bestDeltaCodelength << std::endl << std::flush;
+        Log() << "\n--> tryMoveEachNode: old codelength =" << Super::codelength << std::endl << std::flush;
+      }
+
+      Super::updateCodelengthOnMovingNode(current, oldModuleDelta, bestDeltaModule);
 			derived().updateCodelengthOnMovingMemoryNode(oldModuleDelta, bestDeltaModule);
+
+      if (m_config.altmap && m_config.verbosity)
+      {
+        Log() << "\n--> tryMoveEachNode: updated codelength =" << Super::codelength << std::endl << std::flush;
+      }
 
 			Super::m_moduleMembers[current.index] -= 1;
 			Super::m_moduleMembers[bestModuleIndex] += 1;

@@ -315,7 +315,6 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
     return deltaL;
   }
 
-
   // for alternative cost function
   double delta_stay_log_stay = 0.0;
   double delta_stay_log_flow = 0.0;
@@ -326,8 +325,8 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
   double newModuleFlow = moduleFlowData[newModule].flow;
   double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
   double newModuleLeave = moduleFlowData[newModule].exitFlow;
-  double oldModuleStay = 1.0 - oldModuleLeave;
-  double newModuleStay = 1.0 - newModuleLeave;
+  double oldModuleStay = oldModuleFlow - oldModuleLeave;
+  double newModuleStay = newModuleFlow - newModuleLeave;
 
   // substract cost of the current state before moving the node (considering numerical issues)
   if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
@@ -346,12 +345,12 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
   }
 
   // update flow data when moving the node
-  oldModuleFlow = moduleFlowData[oldModule].flow - current.data.flow;
-  newModuleFlow = moduleFlowData[newModule].flow + current.data.flow;
+  oldModuleFlow -= current.data.flow;
+  newModuleFlow += current.data.flow;
   oldModuleLeave = moduleFlowData[oldModule].exitFlow - current.data.exitFlow + deltaEnterExitOldModule;
   newModuleLeave = moduleFlowData[newModule].exitFlow + current.data.exitFlow - deltaEnterExitNewModule;
-  oldModuleStay = 1.0 - oldModuleLeave;
-  newModuleStay = 1.0 - newModuleLeave;
+  oldModuleStay = oldModuleFlow - oldModuleLeave;
+  newModuleStay = newModuleFlow - newModuleLeave;
 
   // add cost of the new state after moving the node (considering numerical issues)
   if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
@@ -369,9 +368,13 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
     delta_leave_log_flow += plogq(newModuleLeave, newModuleFlow * (1.0 - newModuleFlow));
   }
 
-  deltaL = delta_stay_log_stay - delta_stay_log_flow + delta_leave_log_leave - delta_leave_log_flow;
-  Log() << "\n--> getDeltaCodelengthOnMovingNode: deltaL =" << deltaL << std::endl << std::flush;
-	return deltaL;
+  deltaL = -delta_stay_log_stay + delta_stay_log_flow - delta_leave_log_leave + delta_leave_log_flow;
+  if (m_config.verbosity)
+  {
+    Log() << "\n--> getDeltaCodelengthOnMovingNode: moving node " << current.id << " from module " << oldModule + 1;
+    Log() << " to module " << newModule + 1 << "; deltaL =" << deltaL << std::endl << std::flush;
+  }
+  return deltaL;
 }
 
 
@@ -466,8 +469,8 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
   double newModuleFlow = moduleFlowData[newModule].flow;
   double oldModuleLeave = moduleFlowData[oldModule].exitFlow;
   double newModuleLeave = moduleFlowData[newModule].exitFlow;
-  double oldModuleStay = 1.0 - oldModuleLeave;
-  double newModuleStay = 1.0 - newModuleLeave;
+  double oldModuleStay = oldModuleFlow - oldModuleLeave;
+  double newModuleStay = newModuleFlow - newModuleLeave;
 
   // substract cost of the current state before moving the node (considering numerical issues)
   if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
@@ -509,8 +512,8 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
   newModuleFlow = moduleFlowData[newModule].flow;
   oldModuleLeave = moduleFlowData[oldModule].exitFlow;
   newModuleLeave = moduleFlowData[newModule].exitFlow;
-  oldModuleStay = 1.0 - oldModuleLeave;
-  newModuleStay = 1.0 - newModuleLeave;
+  oldModuleStay = oldModuleFlow - oldModuleLeave;
+  newModuleStay = newModuleFlow - newModuleLeave;
 
   // add cost of the new state after moving the node (considering numerical issues)
   if (oldModuleFlow > 1e-16 && (oldModuleFlow + 1e-16) < 1.0)
@@ -531,7 +534,7 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
   if (m_config.altmap)
   {
     indexCodelength = 0.0;
-    moduleCodelength -= -stay_log_stay + stay_log_flow - leave_log_leave + leave_log_flow;
+    moduleCodelength = -stay_log_stay + stay_log_flow - leave_log_leave + leave_log_flow;
   }
   else
   {
@@ -539,7 +542,6 @@ void InfomapGreedySpecialized<FlowUndirected>::updateCodelengthOnMovingNode(Node
     moduleCodelength = -exit_log_exit + flow_log_flow - nodeFlow_log_nodeFlow;
   }
 
-  Log() << "\n--> updateCodelengthOnMovingNode: codelength =" << codelength << std::endl << std::flush;
   codelength = indexCodelength + moduleCodelength;
 }
 
