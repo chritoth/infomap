@@ -1,8 +1,0 @@
-# './barbell.net ./results/ -2 -u --altmap' -> 6 nodes partitioned in 0s from codelength 25.202062096 in one level to codelength 13.660745089 in 2 levels.
-# path flow name node:
-1:1 0.214286 "3" 3
-1:2 0.142857 "2" 2
-1:3 0.142857 "5" 5
-2:1 0.214286 "4" 4
-3:1 0.142857 "1" 1
-4:1 0.142857 "6" 6

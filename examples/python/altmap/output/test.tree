@@ -1,8 +1,0 @@
-# './output/test.net ./output/ -2 -u -vvv --altmap --to-nodes -p0.05' -> 6 nodes partitioned in 0s from codelength 0.000000000 in one level to codelength -0.276191371 in 2 levels.
-# path flow name node:
-1:1 0.214286 "3" 3
-2:1 0.214286 "4" 4
-3:1 0.142857 "1" 1
-4:1 0.142857 "2" 2
-5:1 0.142857 "5" 5
-6:1 0.142857 "6" 6
