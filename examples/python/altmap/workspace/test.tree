@@ -1,8 +1,22 @@
-# './workspace/test.net ./workspace/ -2 -u -vvv --altmap --to-nodes -p0.05 --cluster-data ./workspace/init.tree' -> 6 nodes partitioned in 0s from codelength 0.000000000 in one level to codelength -0.342259296 in 2 levels.
+# './workspace/test.net ./workspace/ -2 -u -vvv --altmap --to-nodes -p0.05 --cluster-data ./workspace/init.tree' -> 20 nodes partitioned in 0s from codelength 0.000000000 in one level to codelength -0.912719411 in 2 levels.
 # path flow name node:
-1:1 0.214286 "4" 4
-1:2 0.142857 "5" 5
-1:3 0.142857 "6" 6
-2:1 0.214286 "3" 3
-3:1 0.142857 "1" 1
-4:1 0.142857 "2" 2
+1:1 0.0549451 "10" 10
+1:2 0.0494505 "1" 1
+1:3 0.0494505 "2" 2
+1:4 0.0494505 "3" 3
+1:5 0.0494505 "4" 4
+1:6 0.0494505 "5" 5
+1:7 0.0494505 "6" 6
+1:8 0.0494505 "7" 7
+1:9 0.0494505 "8" 8
+1:10 0.0494505 "9" 9
+2:1 0.0549451 "11" 11
+2:2 0.0494505 "12" 12
+2:3 0.0494505 "13" 13
+2:4 0.0494505 "14" 14
+2:5 0.0494505 "15" 15
+2:6 0.0494505 "16" 16
+2:7 0.0494505 "17" 17
+2:8 0.0494505 "18" 18
+2:9 0.0494505 "19" 19
+2:10 0.0494505 "20" 20
