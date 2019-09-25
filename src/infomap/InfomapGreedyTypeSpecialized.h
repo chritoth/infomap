@@ -457,6 +457,7 @@ void InfomapGreedyTypeSpecialized<FlowType, NetworkType>::initModuleOptimization
 
 	// Initiate codelength terms for the initial state of one module per node
 	Super::calculateCodelengthFromActiveNetwork();
+	Log() << "initModuleOptimization: moduleCL = " << Super::moduleCodelength << "indexCL = " << Super::indexCodelength << std::endl << std::flush;
 }
 
 template<typename FlowType>

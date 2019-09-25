@@ -598,7 +598,8 @@ void InfomapBase::runPartition()
 
 	if (haveModules())
 	{
-		if (m_config.fastHierarchicalSolution <= 1)
+    Log() << "have modules!\n" << std::flush << std::endl;
+    if (m_config.fastHierarchicalSolution <= 1)
 		{
 			// Try to tune existing solution before hierarchical algorithm
 			partition();
@@ -1249,7 +1250,8 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 	bool initiatedWithModules = haveModules();
 	if (initiatedWithModules)
 	{
-		// Delete possible sub-modules and move nodes into current modular structure
+		Log() << "Partitioning initiated with modules!\n" << std::flush << std::endl;
+	  // Delete possible sub-modules and move nodes into current modular structure
 		deleteSubLevels();
 		unsigned int i = 0;
 		for (NodeBase::sibling_iterator moduleIt(root()->begin_child()), endIt(root()->end_child());
@@ -1321,6 +1323,8 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 			Log() << "(warning: codelength " << initialCodelength << " -> " << codelength << ") ";
 	}
 
+  Log() << "\n current CL vs initial CL: " << codelength << " " << initialCodelength << std::endl;
+
 	double oldCodelength = oneLevelCodelength;
 	double compression = (oldCodelength - codelength)/std::abs(oldCodelength);
 	if (verbose)
@@ -1336,11 +1340,21 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 		while (numTopModules() > 1)
 		{
 			++m_tuneIterationIndex;
+      Log() << "\n Tuning interation: " << m_tuneIterationIndex << " doFineTune = " << doFineTune << std::endl;
+
+      // TODO: hacky solution for bug in >coarseTune()<
+      if (m_config.altmap && m_config.clusterDataFile != "")
+      {
+        Log() << "\n Do not coarse tune for altmap cost function with predefined clusters!" << std::endl;
+        doFineTune = true;
+        coarseTuned = true;
+      }
+
 			if (doFineTune)
 			{
 				fineTune(fineTuneLeafNodes);
 				if (coarseTuned &&
-						(codelength > oldCodelength - initialCodelength*m_config.minimumRelativeTuneIterationImprovement ||
+						(codelength > oldCodelength - std::abs(initialCodelength)*m_config.minimumRelativeTuneIterationImprovement ||
 								codelength > oldCodelength - m_config.minimumCodelengthImprovement))
 					break;
 				compression = (oldCodelength - codelength)/std::abs(oldCodelength);
@@ -1353,7 +1367,7 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 				coarseTune(m_config.alternateCoarseTuneLevel ? (++coarseTuneLevel % m_config.coarseTuneLevel) :
 						m_config.coarseTuneLevel - 1);
 				coarseTuned = true;
-				if (codelength > oldCodelength - initialCodelength*m_config.minimumRelativeTuneIterationImprovement ||
+				if (codelength > oldCodelength - std::abs(initialCodelength)*m_config.minimumRelativeTuneIterationImprovement ||
 						codelength > oldCodelength - m_config.minimumCodelengthImprovement)
 					break;
 				compression = (oldCodelength - codelength)/std::abs(oldCodelength);
@@ -1459,6 +1473,8 @@ void InfomapBase::mergeAndConsolidateRepeatedly(bool forceConsolidation, bool fa
 		double consolidatedIndexLength = indexCodelength;
 		double consolidatedModuleLength = moduleCodelength;
 
+    Log() << "consolidated CL =  " << consolidatedCodelength << std::endl << std::flush;
+
 		++m_aggregationLevel;
 
 		if (m_subLevel == 0 && m_config.benchmark)
@@ -1548,11 +1564,11 @@ void InfomapBase::fineTune(bool leafLevel)
 
 	initModuleOptimization();
 
-//	Log() << "\n--> FineTune: initial codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
+	Log() << "\n--> FineTune: initial codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
 
 	moveNodesToPredefinedModules();
 
-//	Log() << "\n--> FineTune: predefined codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
+	Log() << "\n--> FineTune: predefined codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
 
 	mergeAndConsolidateRepeatedly();
 
