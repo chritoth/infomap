@@ -665,7 +665,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
 				Super::m_emptyModules.push_back(current.index);
 			}
 
-			if (m_config.altmap && m_config.verbosity)
+			if (m_config.verbosity)
       {
         Log() << "\n--> tryMoveEachNode: bestDeltaCodelength =" << bestDeltaCodelength << std::endl << std::flush;
         Log() << "\n--> tryMoveEachNode: old codelength =" << Super::codelength << std::endl << std::flush;
@@ -674,7 +674,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
       Super::updateCodelengthOnMovingNode(current, oldModuleDelta, bestDeltaModule);
 			derived().updateCodelengthOnMovingMemoryNode(oldModuleDelta, bestDeltaModule);
 
-      if (m_config.altmap && m_config.verbosity)
+      if (m_config.verbosity)
       {
         Log() << "\n--> tryMoveEachNode: updated codelength =" << Super::codelength << std::endl << std::flush;
       }

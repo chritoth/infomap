@@ -598,7 +598,6 @@ void InfomapBase::runPartition()
 
 	if (haveModules())
 	{
-    Log() << "have modules!\n" << std::flush << std::endl;
     if (m_config.fastHierarchicalSolution <= 1)
 		{
 			// Try to tune existing solution before hierarchical algorithm
@@ -1323,8 +1322,6 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 			Log() << "(warning: codelength " << initialCodelength << " -> " << codelength << ") ";
 	}
 
-  Log() << "\n current CL vs initial CL: " << codelength << " " << initialCodelength << std::endl;
-
 	double oldCodelength = oneLevelCodelength;
 	double compression = (oldCodelength - codelength)/std::abs(oldCodelength);
 	if (verbose)
@@ -1342,10 +1339,12 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 			++m_tuneIterationIndex;
       Log() << "\n Tuning interation: " << m_tuneIterationIndex << " doFineTune = " << doFineTune << std::endl;
 
-      // TODO: hacky solution for bug in >coarseTune()<
-      if (m_config.altmap && m_config.clusterDataFile != "")
+      // TODO: hacky solution for ?bug? in >coarseTune()< when using predefined cluster data with altmap
+      //if (m_config.altmap && m_config.clusterDataFile != "")
+      // TODO: disable coarse tuning for both cost functions when using predefined cluster data (!!comparability!!)
+      if (m_config.clusterDataFile != "") //
       {
-        Log() << "\n Do not coarse tune for altmap cost function with predefined clusters!" << std::endl;
+        Log() << "\n Coarse tuning disabled (using predefined clusters)!" << std::endl;
         doFineTune = true;
         coarseTuned = true;
       }
@@ -1364,7 +1363,7 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 			}
 			else
 			{
-				coarseTune(m_config.alternateCoarseTuneLevel ? (++coarseTuneLevel % m_config.coarseTuneLevel) :
+			  coarseTune(m_config.alternateCoarseTuneLevel ? (++coarseTuneLevel % m_config.coarseTuneLevel) :
 						m_config.coarseTuneLevel - 1);
 				coarseTuned = true;
 				if (codelength > oldCodelength - std::abs(initialCodelength)*m_config.minimumRelativeTuneIterationImprovement ||
@@ -1473,8 +1472,6 @@ void InfomapBase::mergeAndConsolidateRepeatedly(bool forceConsolidation, bool fa
 		double consolidatedIndexLength = indexCodelength;
 		double consolidatedModuleLength = moduleCodelength;
 
-    Log() << "consolidated CL =  " << consolidatedCodelength << std::endl << std::flush;
-
 		++m_aggregationLevel;
 
 		if (m_subLevel == 0 && m_config.benchmark)
@@ -1564,11 +1561,11 @@ void InfomapBase::fineTune(bool leafLevel)
 
 	initModuleOptimization();
 
-	Log() << "\n--> FineTune: initial codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
+//	Log() << "\n--> FineTune: initial codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
 
 	moveNodesToPredefinedModules();
 
-	Log() << "\n--> FineTune: predefined codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
+//	Log() << "\n--> FineTune: predefined codelength: " << indexCodelength << " + " << moduleCodelength << " = " << codelength << "";
 
 	mergeAndConsolidateRepeatedly();
 
@@ -1590,14 +1587,14 @@ void InfomapBase::coarseTune(unsigned int recursiveCount)
 	if (numTopModules() == 1)
 		return;
 
-	m_isCoarseTune = true;
+  m_isCoarseTune = true;
 	if (m_subLevel == 0)
 		partitionEachModuleParallel(recursiveCount, m_config.fastCoarseTunePartition);
 	else
 		partitionEachModule(recursiveCount, m_config.fastCoarseTunePartition);
 
-	bool keepLeafModules = useHardPartitions();
-	unsigned int i = 0;
+  bool keepLeafModules = useHardPartitions();
+  unsigned int i = 0;
 	if (keepLeafModules)
 	{
 		setActiveNetworkFromLeafModules();
@@ -1618,7 +1615,7 @@ void InfomapBase::coarseTune(unsigned int recursiveCount)
 
 	initModuleOptimization();
 	moveNodesToPredefinedModules();
-	if (keepLeafModules)
+  if (keepLeafModules)
 	{
 		// Don't replace leaf modules
 		consolidateModules(false, true);
@@ -1631,7 +1628,7 @@ void InfomapBase::coarseTune(unsigned int recursiveCount)
 		consolidateModules(true, true);
 	}
 
-	// Prepare the sub-modules to move into the former module structure and begin optimization from there
+  // Prepare the sub-modules to move into the former module structure and begin optimization from there
 	setActiveNetworkFromChildrenOfRoot();
 	m_moveTo.resize(m_activeNetwork.size());
 	i = 0;
@@ -1643,7 +1640,7 @@ void InfomapBase::coarseTune(unsigned int recursiveCount)
 	}
 	initModuleOptimization();
 	moveNodesToPredefinedModules();
-	TO_NOTHING(old_codelength);
+  TO_NOTHING(old_codelength);
 	ASSERT(std::abs(codelength - old_codelength) < 1.0e-4);
 
 	mergeAndConsolidateRepeatedly(true);
