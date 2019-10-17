@@ -195,3 +195,14 @@ def generate_two_rings(n_ring=10):
     G.add_edge(1, int(N / 2), weight=1)
     G.add_edge(int(N / 2) + 1, N, weight=1)
     return G
+
+def read_communities_from_tree_file():
+    df = read_tree(workspace_path + filename + '.tree')
+
+    communities_found = {}
+    for index, row in df.iterrows():
+        node = int(row['node'])
+        communities_found[node] = int(row['community'])
+
+    communities_found = OrderedDict(sorted(communities_found.items()))
+    return communities_found
