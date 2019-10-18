@@ -183,19 +183,6 @@ def create_initfile(G, N_partitions=None, randomized=True):
 
     return communities
 
-
-def generate_two_rings(n_ring=10):
-    N = 2 * n_ring  # num nodes
-    G = nx.MultiGraph()
-    G.add_nodes_from(range(1, N + 1))
-
-    for n in range(1, N):
-        G.add_edge(n, n + 1, weight=1)
-
-    G.add_edge(1, int(N / 2), weight=1)
-    G.add_edge(int(N / 2) + 1, N, weight=1)
-    return G
-
 def read_communities_from_tree_file():
     df = read_tree(workspace_path + filename + '.tree')
 
@@ -205,4 +192,6 @@ def read_communities_from_tree_file():
         communities_found[node] = int(row['community'])
 
     communities_found = OrderedDict(sorted(communities_found.items()))
-    return communities_found
+    num_communities = max(communities_found.values()) - min(communities_found.values()) + 1
+
+    return communities_found, num_communities
