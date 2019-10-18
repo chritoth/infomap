@@ -1339,10 +1339,10 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 			++m_tuneIterationIndex;
       Log() << "\n Tuning interation: " << m_tuneIterationIndex << " doFineTune = " << doFineTune << std::endl;
 
-      // TODO: hacky solution for ?bug? in >coarseTune()< when using predefined cluster data with altmap
-      //if (m_config.altmap && m_config.clusterDataFile != "")
       // TODO: disable coarse tuning for both cost functions when using predefined cluster data (!!comparability!!)
-      if (m_config.clusterDataFile != "") //
+      // if (m_config.clusterDataFile != "") //
+      // TODO: hacky solution for ?bug? in >coarseTune()< when using predefined cluster data with altmap
+      if (m_config.altmap && m_config.clusterDataFile != "")
       {
         Log() << "\n Coarse tuning disabled (using predefined clusters)!" << std::endl;
         doFineTune = true;
