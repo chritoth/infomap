@@ -12,15 +12,15 @@ workspace_path = './workspace/'
 filename = 'test'
 
 
-def infomap(net_path, altmap=False, additional_args=''):
-    workspace_path = './workspace/'
-    args = ' -u -vvv'
+def infomap(altmap=False, additional_args=''):
+    args = ' -2 -u -vvv '
     if altmap:
-        args += ' -2 --altmap --to-nodes -p0.15'
+        args += ' --altmap --to-nodes -p0.15 '
 
     args += additional_args
 
-    os.system(infomap_path + ' ' + net_path + ' ' + workspace_path + ' ' + args)
+    input_path = workspace_path + filename + '.net'
+    os.system(infomap_path + ' ' + input_path + ' ' + workspace_path + ' ' + args)
 
 
 def read_tree(tree_path):
@@ -139,63 +139,24 @@ def altmap_cost(G, communities):
     # print (f'Node entropy H(x) =  {H_x}.\n')
     return cost
 
+def generate_initfile(G, method='random'):
 
-# create initial partition file (init.tree)
-def create_initfile(G, N_partitions=None, randomized=True):
-    N = len(G.nodes())
-    node_ids = np.asarray(range(1, N + 1))
-    if randomized:
-        np.random.shuffle(node_ids)  # randomize node order
+    if method not in {'random', 'sc'}:
+        method = 'random'
 
-    pagerank = nx.pagerank_numpy(G, alpha=0.85)
-    p_nodes = np.array([[val] for val in pagerank.values()])
-    # p_nodes = np.ones_like(node_ids) / N
-
-    num_partitions = N_partitions
-    if num_partitions == None:
-        num_partitions = int(np.sqrt(N))
-
-    partition_size = int(N / num_partitions)
-    communities = {}
-
-    with open(workspace_path + 'init.tree', "w+") as init_file:
-        init_file.write('# path flow name node:\n')
-        n = 0
-        for partition in range(1, num_partitions + 1):
-            for node_rank in range(1, partition_size + 1):
-                if n >= N:
-                    break
-                node_id = node_ids[n]
-                n += 1
-
-                node_flow = p_nodes[node_id - 1, 0]
-                init_file.write(str(partition) + ':' + str(node_rank) + ' ' + str(node_flow))
-                init_file.write(' ' + '\"' + str(node_id) + '\"' + ' ' + str(node_id) + '\n')
-                communities[node_id] = partition
-
-        while n < N:
-            node_rank += 1
-            node_id = node_ids[n]
-            n += 1
-
-            node_flow = p_nodes[node_id - 1, 0]
-            init_file.write(str(partition) + ':' + str(node_rank) + ' ' + str(node_flow))
-            init_file.write(' ' + '\"' + str(node_id) + '\"' + ' ' + str(node_id) + '\n')
-            communities[node_id] = partition
-
-    return communities
-
-
-def create_initfile_sc(G):
     N = len(G.nodes())
     node_ids = np.asarray(range(1, N + 1))
 
-    # use spectral clustering to determine initial communities
-    adj_mat = nx.to_numpy_matrix(G)
-    sc = SpectralClustering(n_clusters=int(np.sqrt(N)), affinity='precomputed', n_init=10)
-    sc.fit(adj_mat)
-    labels = sc.labels_ + 1
-    num_communities = np.max(labels)
+    if method == 'sc':
+        # use spectral clustering to determine initial communities
+        adj_mat = nx.to_numpy_matrix(G)
+        sc = SpectralClustering(n_clusters=int(np.sqrt(N)), affinity='precomputed', n_init=1)
+        sc.fit(adj_mat)
+        labels = sc.labels_ + 1
+        num_communities = np.max(labels)
+    else:
+        num_communities = int(np.sqrt(N))
+        labels = np.random.randint(1, num_communities + 1, node_ids.shape)
 
     communities = dict(zip(node_ids, labels))
 
