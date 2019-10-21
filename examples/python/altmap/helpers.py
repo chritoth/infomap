@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+from sklearn.cluster import SpectralClustering
 from collections import OrderedDict
 
 # params
@@ -13,9 +14,9 @@ filename = 'test'
 
 def infomap(net_path, altmap=False, additional_args=''):
     workspace_path = './workspace/'
-    args = ' -2 -u -vvv'
+    args = ' -u -vvv'
     if altmap:
-        args += ' --altmap --to-nodes -p0.15'
+        args += ' -2 --altmap --to-nodes -p0.15'
 
     args += additional_args
 
@@ -146,8 +147,9 @@ def create_initfile(G, N_partitions=None, randomized=True):
     if randomized:
         np.random.shuffle(node_ids)  # randomize node order
 
-    pagerank = nx.pagerank_numpy(G, alpha=0.95)
+    pagerank = nx.pagerank_numpy(G, alpha=0.85)
     p_nodes = np.array([[val] for val in pagerank.values()])
+    # p_nodes = np.ones_like(node_ids) / N
 
     num_partitions = N_partitions
     if num_partitions == None:
@@ -180,6 +182,39 @@ def create_initfile(G, N_partitions=None, randomized=True):
             init_file.write(str(partition) + ':' + str(node_rank) + ' ' + str(node_flow))
             init_file.write(' ' + '\"' + str(node_id) + '\"' + ' ' + str(node_id) + '\n')
             communities[node_id] = partition
+
+    return communities
+
+
+def create_initfile_sc(G):
+    N = len(G.nodes())
+    node_ids = np.asarray(range(1, N + 1))
+
+    # use spectral clustering to determine initial communities
+    adj_mat = nx.to_numpy_matrix(G)
+    sc = SpectralClustering(n_clusters=int(np.sqrt(N)), affinity='precomputed', n_init=10)
+    sc.fit(adj_mat)
+    labels = sc.labels_ + 1
+    num_communities = np.max(labels)
+
+    communities = dict(zip(node_ids, labels))
+
+    # compute stationary distribution
+    pagerank = nx.pagerank_numpy(G, alpha=0.85)
+    p_nodes = np.array([[val] for val in pagerank.values()])
+    # p_nodes = np.ones_like(node_ids) / N
+
+    with open(workspace_path + 'init.tree', "w+") as init_file:
+        init_file.write('# path flow name node:\n')
+        for community_id in range(1, num_communities + 1):
+            community = [key for (key, value) in communities.items() if value == community_id]
+            n = 0
+            for node_id in community:
+                n += 1
+
+                node_flow = p_nodes[node_id - 1, 0]
+                init_file.write(str(community_id) + ':' + str(n) + ' ' + str(node_flow))
+                init_file.write(' ' + '\"' + str(node_id) + '\"' + ' ' + str(node_id) + '\n')
 
     return communities
 
