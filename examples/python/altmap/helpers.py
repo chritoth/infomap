@@ -6,22 +6,25 @@ import pandas as pd
 from sklearn.cluster import SpectralClustering
 from collections import OrderedDict
 
+plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'text.usetex': True})
+plt.rcParams.update({'font.family': 'sans-serif'})
+plt.rcParams['text.latex.preamble'] = [
+       r'\usepackage{amsmath,amssymb,amsfonts,amsthm}',
+       r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
+       r'\sisetup{detect-all}',   # ...this to force siunitx to actually use your fonts
+       r'\usepackage{helvet}',    # set the normal font here
+       r'\usepackage{sansmath}',  # load up the sansmath so that math -> helvet
+       r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
+]
+
 # params
 infomap_path = '~/infomap/Infomap'
 workspace_path = './workspace/'
 filename = 'test'
 
-
-def infomap(altmap=False, additional_args=''):
-    args = ' -2 -u -vvv '
-    if altmap:
-        args += ' --altmap --to-nodes -p0.15 '
-
-    args += additional_args
-
-    input_path = workspace_path + filename + '.net'
-    os.system(infomap_path + ' ' + input_path + ' ' + workspace_path + ' ' + args)
-
+if not os.path.exists(workspace_path):
+    os.mkdir(workspace_path)
 
 def read_tree(tree_path):
     df = pd.read_csv(tree_path, sep=' ', header=1)
@@ -191,3 +194,30 @@ def read_communities_from_tree_file():
     num_communities = max(communities_found.values()) - min(communities_found.values()) + 1
 
     return communities_found, num_communities
+
+
+def infomap(G, altmap=False, init='std', update_inputfile=True, additional_args=''):
+    # write graph to input file
+    input_path = workspace_path + filename + '.net'
+    if update_inputfile:
+        nx.write_pajek(G, input_path)
+
+    # construct argument string
+    args = ' -2 -u -vvv ' # two-level, undirected network, verbose output
+    if altmap:
+        args += ' --altmap --to-nodes ' # use altmap cost, teleport to nodes rather than edges
+
+    if init not in {'std', 'random', 'sc'}:
+        init = 'std'
+
+    args += additional_args
+
+    # generate init file
+    if init != 'std':
+        generate_initfile(G, method=init)
+        args += ' --cluster-data ./workspace/init.tree '
+
+    os.system(infomap_path + ' ' + input_path + ' ' + workspace_path + ' ' + args)
+
+    communities_found, num_communities_found = read_communities_from_tree_file()
+    return  communities_found, num_communities_found
