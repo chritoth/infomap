@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.cluster import SpectralClustering
 from collections import OrderedDict
 
-plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'font.size': 20})
 plt.rcParams.update({'text.usetex': True})
 plt.rcParams.update({'font.family': 'sans-serif'})
 plt.rcParams['text.latex.preamble'] = [
