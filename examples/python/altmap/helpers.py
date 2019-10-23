@@ -9,6 +9,9 @@ from collections import OrderedDict
 plt.rcParams.update({'font.size': 20})
 plt.rcParams.update({'text.usetex': True})
 plt.rcParams.update({'font.family': 'sans-serif'})
+plt.rcParams.update({'lines.linewidth': 3})
+plt.rcParams.update({'lines.markersize': 10})
+plt.rcParams.update({'lines.markeredgewidth': 3})
 plt.rcParams['text.latex.preamble'] = [
        r'\usepackage{amsmath,amssymb,amsfonts,amsthm}',
        r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
@@ -52,36 +55,37 @@ def plogp(p):
     return p * np.log2(p)
 
 
-def drawNetwork(G, communities, labels=True):
+def drawNetwork(G, communities, labels=True, ax=None):
     # position map
-    pos = nx.spring_layout(G)
+    # pos = nx.spring_layout(G)
+    pos = nx.kamada_kawai_layout(G)
+    # pos = nx.planar_layout(G)
     # community ids
-    communities = [v for v in communities.values()]
+    color_idc = [v for v in communities.values()]
 
     # Draw edges
-    nx.draw_networkx_edges(G, pos)
+    nx.draw_networkx_edges(G, pos, ax=ax, width=3)
 
     # Draw nodes
-    nodeCollection = nx.draw_networkx_nodes(G,
-                                            pos=pos,
-                                            node_color=communities,
-                                            cmap=plt.get_cmap('Set3')
-                                            )
+    nodeCollection = nx.draw_networkx_nodes(G, pos=pos, node_color=color_idc, cmap=plt.get_cmap('Set3'), ax=ax,
+                                            node_size=700)
 
     # Draw node labels
     if labels:
-        for n in G.nodes():
-            plt.annotate(n,
-                         xy=pos[n],
-                         textcoords='offset points',
-                         horizontalalignment='center',
-                         verticalalignment='center',
-                         xytext=[0, 0],
-                         color='k'
-                         )
+        nx.draw_networkx_labels(G, pos, ax=ax, labels=communities, font_weight='bold', font_size=16)
+        # for n in G.nodes():
+        #     plt.annotate(n, xy=pos[n], textcoords='offset points',
+        #                  horizontalalignment='center',verticalalignment='center', xytext=[0, 0],color='k')
 
-    plt.axis('off')
-    plt.show()
+    if ax:
+        ax.set_frame_on(False)
+        ax.set_yticklabels([])
+        ax.set_yticks([])
+        ax.set_xticklabels([])
+        ax.set_xticks([])
+    else:
+        plt.axis('off')
+        plt.show()
 
 # compute altmap cost
 def altmap_cost(G, communities):
