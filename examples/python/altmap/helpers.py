@@ -225,3 +225,17 @@ def infomap(G, altmap=False, init='std', update_inputfile=True, additional_args=
 
     communities_found, num_communities_found = read_communities_from_tree_file()
     return  communities_found, num_communities_found
+
+# compute altmap module cost
+def altmap_module_cost(p_comm, p_comm_leave):
+    # check for edge cases
+    epsilon = 1e-18  # vicinity threshold for numerical stability
+    if (p_comm <= epsilon) or (p_comm + epsilon >= 1.0):
+        return 0.0
+
+    p_comm_stay = p_comm - p_comm_leave
+    cost_per_module = -plogp(p_comm_stay)
+    cost_per_module += 2.0 * plogq(p_comm_stay, p_comm)
+    cost_per_module -= plogp(p_comm_leave)
+    cost_per_module += plogq(p_comm_leave, p_comm * (1.0 - p_comm))
+    return cost_per_module
