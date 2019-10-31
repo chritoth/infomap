@@ -157,7 +157,7 @@ def generate_initfile(G, method='random'):
     if method == 'sc':
         # use spectral clustering to determine initial communities
         adj_mat = nx.to_numpy_matrix(G)
-        sc = SpectralClustering(n_clusters=int(np.sqrt(N)), affinity='precomputed', n_init=1)
+        sc = SpectralClustering(n_clusters=int(np.sqrt(N)), affinity='precomputed', n_init=1, assign_labels='kmeans')
         sc.fit(adj_mat)
         labels = sc.labels_ + 1
         num_communities = np.max(labels)
