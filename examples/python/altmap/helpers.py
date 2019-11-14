@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+import time
 from sklearn.cluster import SpectralClustering
 from collections import OrderedDict
 
@@ -147,20 +148,24 @@ def altmap_cost(G, communities):
     return cost
 
 def generate_initfile(G, method='random'):
-
-    if method not in {'random', 'sc'}:
-        method = 'random'
+    # random is default method
 
     N = len(G.nodes())
     node_ids = np.asarray(range(1, N + 1))
 
     if method == 'sc':
         # use spectral clustering to determine initial communities
+        time_start = time.clock()
         adj_mat = nx.to_numpy_matrix(G)
         sc = SpectralClustering(n_clusters=int(np.sqrt(N)), affinity='precomputed', n_init=1, assign_labels='kmeans')
         sc.fit(adj_mat)
+        elapsed_time = time.clock() - time_start
+        print(f'Spectral clustering finished in {elapsed_time} seconds.')
         labels = sc.labels_ + 1
         num_communities = np.max(labels)
+    elif method == 'twomodule':
+        num_communities = 2
+        labels = [1] * int(N/2) + [2] * (N - int(N/2))
     else:
         num_communities = int(np.sqrt(N))
         labels = np.random.randint(1, num_communities + 1, node_ids.shape)
@@ -168,9 +173,12 @@ def generate_initfile(G, method='random'):
     communities = dict(zip(node_ids, labels))
 
     # compute stationary distribution
-    pagerank = nx.pagerank_numpy(G, alpha=0.85)
-    p_nodes = np.array([[val] for val in pagerank.values()])
-    # p_nodes = np.ones_like(node_ids) / N
+    # time_start = time.clock()
+    # pagerank = nx.pagerank_numpy(G, alpha=0.85)
+    # p_nodes = np.array([val for val in pagerank.values()])
+    # elapsed_time = time.clock() - time_start
+    # print(f'Page rank finished in {elapsed_time} seconds.')
+    p_nodes = np.ones_like(node_ids) / N
 
     with open(workspace_path + 'init.tree', "w+") as init_file:
         init_file.write('# path flow name node:\n')
@@ -180,11 +188,11 @@ def generate_initfile(G, method='random'):
             for node_id in community:
                 n += 1
 
-                node_flow = p_nodes[node_id - 1, 0]
+                node_flow = p_nodes[node_id - 1]#, 0]
                 init_file.write(str(community_id) + ':' + str(n) + ' ' + str(node_flow))
                 init_file.write(' ' + '\"' + str(node_id) + '\"' + ' ' + str(node_id) + '\n')
 
-    return communities
+    return communities, num_communities
 
 def read_communities_from_tree_file():
     df = read_tree(workspace_path + filename + '.tree')
@@ -207,24 +215,25 @@ def infomap(G, altmap=False, init='std', update_inputfile=True, additional_args=
         nx.write_pajek(G, input_path)
 
     # construct argument string
-    args = ' -2 -u -vvv ' # two-level, undirected network, verbose output
+    args = ' -2 -u ' # two-level, undirected network, verbose output
     if altmap:
-        args += ' --altmap --to-nodes ' # use altmap cost, teleport to nodes rather than edges
+        args += ' --altmap ' # use altmap cost, teleport to nodes rather than edges
 
-    if init not in {'std', 'random', 'sc'}:
+    if init not in {'std', 'random', 'twomodule', 'sc'}:
         init = 'std'
 
     args += additional_args
 
     # generate init file
+    communities_init = num_communities_init = None
     if init != 'std':
-        generate_initfile(G, method=init)
+        communities_init, num_communities_init = generate_initfile(G, method=init)
         args += ' --cluster-data ./workspace/init.tree '
 
     os.system(infomap_path + ' ' + input_path + ' ' + workspace_path + ' ' + args)
 
     communities_found, num_communities_found = read_communities_from_tree_file()
-    return  communities_found, num_communities_found
+    return  communities_found, num_communities_found, communities_init, num_communities_init
 
 # compute altmap module cost
 def altmap_module_cost(p_comm, p_comm_leave):
