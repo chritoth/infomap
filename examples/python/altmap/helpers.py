@@ -55,25 +55,78 @@ def plogp(p):
 
     return p * np.log2(p)
 
+# get nodes grouped per community
+def nodes_per_community(communities):
+    comm_ids = np.unique([v for v in communities.values()])
+    Nc = len(comm_ids)
+
+    comm_sizes = np.zeros((Nc,), dtype=int)
+    comm_nodes = []
+    for i, comm_id in enumerate(comm_ids):
+        community_nodes = [node for (node, comm) in communities.items() if comm == comm_id]
+        comm_nodes.append(community_nodes)
+        comm_sizes[i] = len(community_nodes)
+
+    return comm_ids, comm_nodes, comm_sizes
+
+# compute node positions for communities placed in a circular manner
+def community_layout(communities):
+    N = len(communities)
+
+    comm_ids, comm_nodes, comm_sizes = nodes_per_community(communities)
+    Nc = len(comm_ids)
+
+    comm_angles = 2.0 * np.pi / N * comm_sizes
+    comm_radii = 1.0 / N * comm_sizes
+
+    prev_axis = 0
+    comm_axis = np.zeros((Nc,))
+    distances_from_origin = np.zeros((Nc,))
+    for i, comm_angle in enumerate(comm_angles):
+        axis = comm_angle / 2 + prev_axis
+        prev_axis += comm_angle
+        comm_axis[i] = axis
+
+        distances_from_origin[i] = comm_radii[i]
+        if comm_angle < np.pi:
+            distances_from_origin[i] /= np.abs(np.sin(comm_angle / 2))
+
+    comm_centers = [[d * np.cos(axis), d * np.sin(axis)] for d, axis in zip(distances_from_origin, comm_axis)]
+    comm_centers = np.asarray(comm_centers)
+
+    node_positions = dict()
+    for radius, size, center, node_ids in zip(comm_radii, comm_sizes, comm_centers, comm_nodes):
+        node_radii = 0.9 * radius * np.sqrt(np.random.uniform(0, 1, size))
+        node_angles = np.random.uniform(0, 2 * np.pi, size)
+
+        for node_id, r, phi in zip(node_ids, node_radii, node_angles):
+            node_positions[node_id] = [r * np.cos(phi) + center[0], r * np.sin(phi) + center[1]]
+
+    return OrderedDict(sorted(node_positions.items()))
 
 def drawNetwork(G, communities, labels=True, ax=None):
+    node_size = 300
+    edge_width = 0.3
+    font_size = 13
+
     # position map
     # pos = nx.spring_layout(G)
-    pos = nx.kamada_kawai_layout(G)
+    # pos = nx.kamada_kawai_layout(G)
     # pos = nx.planar_layout(G)
+    pos = community_layout(communities)
+
     # community ids
     color_idc = [v for v in communities.values()]
 
     # Draw edges
-    nx.draw_networkx_edges(G, pos, ax=ax, width=3)
+    nx.draw_networkx_edges(G, pos, ax=ax, width=edge_width)
 
     # Draw nodes
-    nodeCollection = nx.draw_networkx_nodes(G, pos=pos, node_color=color_idc, cmap=plt.get_cmap('Set3'), ax=ax,
-                                            node_size=700)
+    nx.draw_networkx_nodes(G, pos=pos, node_color=color_idc, cmap=plt.get_cmap('Set3'), ax=ax, node_size=node_size)
 
     # Draw node labels
     if labels:
-        nx.draw_networkx_labels(G, pos, ax=ax, labels=communities, font_weight='bold', font_size=16)
+        nx.draw_networkx_labels(G, pos, ax=ax, labels=communities, font_weight='bold', font_size=font_size)
         # for n in G.nodes():
         #     plt.annotate(n, xy=pos[n], textcoords='offset points',
         #                  horizontalalignment='center',verticalalignment='center', xytext=[0, 0],color='k')
