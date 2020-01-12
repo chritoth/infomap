@@ -34,9 +34,7 @@ def read_tree(tree_path):
     df = pd.read_csv(tree_path, sep=' ', header=1)
     df.columns = ['community', 'flow', 'name', 'node', 'trash']
     df = df.drop(['flow', 'trash'], axis=1)
-
-    for i, path in enumerate(df['community']):
-        df.iloc[i, 0] = path.split(':')[0]
+    df['community'] = df['community'].apply(lambda x: x.split(':')[0])
 
     return df
 
@@ -250,13 +248,12 @@ def generate_initfile(G, method='random'):
 def read_communities_from_tree_file():
     df = read_tree(workspace_path + filename + '.tree')
 
-    communities_found = {}
-    for index, row in df.iterrows():
-        node = int(row['node'])
-        communities_found[node] = int(row['community'])
+    node_ids = df['name'].tolist()
+    labels = df['community'].apply(lambda x: int(x)).tolist()
+    communities_found = dict(zip(node_ids, labels))
 
     communities_found = OrderedDict(sorted(communities_found.items()))
-    num_communities = max(communities_found.values()) - min(communities_found.values()) + 1
+    num_communities = max(labels) - min(labels) + 1
 
     return communities_found, num_communities
 
