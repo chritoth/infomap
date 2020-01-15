@@ -6,6 +6,8 @@ import pandas as pd
 import time
 from sklearn.cluster import SpectralClustering
 from collections import OrderedDict
+from matplotlib.colors import ListedColormap
+
 
 plt.rcParams.update({'font.size': 20})
 plt.rcParams.update({'text.usetex': True})
@@ -26,6 +28,24 @@ plt.rcParams['text.latex.preamble'] = [
 infomap_path = '~/infomap/Infomap'
 workspace_path = './workspace/'
 filename = 'test'
+
+# define colormap
+colors = np.array([[255,   0,   0, 255],
+                   [  0, 255,   0, 255],
+                   [100,   0, 100, 255],
+                   [  0,   0, 255, 255],
+                   [255, 255,   0, 255],
+                   [  0, 255, 255, 255],
+                   [200,   0, 100, 255],
+                   [  0,   0, 100, 255],
+                   [240, 130,   0, 255],
+                   [255,   0, 255, 255],
+                   [  0, 100,   0, 255],
+                   [100,   0,   0, 255],
+                   [  0,   0,   0, 255]]) / 255.0
+commColors = ListedColormap(colors, name='commColors', N=len(colors))
+
+
 
 if not os.path.exists(workspace_path):
     os.mkdir(workspace_path)
@@ -52,6 +72,10 @@ def plogp(p):
         return 0.0
 
     return p * np.log2(p)
+
+def get_num_communities(communities):
+    comm_ids = np.unique([v for v in communities.values()])
+    return len(comm_ids)
 
 # get nodes grouped per community
 def nodes_per_community(communities):
@@ -87,20 +111,33 @@ def community_layout(communities):
 
         distances_from_origin[i] = comm_radii[i]
         if comm_angle < np.pi:
-            distances_from_origin[i] /= np.abs(np.sin(comm_angle / 2))
+            # distances_from_origin[i] /= np.abs(np.sin(comm_angle / 2))
+            distances_from_origin[i] *= 0.9 * np.pi / comm_angle
 
     comm_centers = [[d * np.cos(axis), d * np.sin(axis)] for d, axis in zip(distances_from_origin, comm_axis)]
     comm_centers = np.asarray(comm_centers)
 
     node_positions = dict()
     for radius, size, center, node_ids in zip(comm_radii, comm_sizes, comm_centers, comm_nodes):
-        node_radii = 0.9 * radius * np.sqrt(np.random.uniform(0, 1, size))
+        node_radii = 1.0 * radius * np.sqrt(np.random.uniform(0, 1, size))
         node_angles = np.random.uniform(0, 2 * np.pi, size)
 
         for node_id, r, phi in zip(node_ids, node_radii, node_angles):
             node_positions[node_id] = [r * np.cos(phi) + center[0], r * np.sin(phi) + center[1]]
 
     return OrderedDict(sorted(node_positions.items()))
+
+def get_node_shapes(communities):
+    N = len(communities)
+
+    comm_ids, comm_nodes, comm_sizes = nodes_per_community(communities)
+    Nc = len(comm_ids)
+
+    node_shapes = dict()
+    for nodes, comm_size in zip(comm_nodes, comm_sizes):
+        node_shapes.update(zip(nodes, ['s']*comm_size))
+
+    return list(OrderedDict(sorted(node_shapes.items())).values())
 
 def drawNetwork(G, communities, labels=True, ax=None):
     node_size = 300
