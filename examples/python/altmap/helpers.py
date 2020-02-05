@@ -140,15 +140,15 @@ def get_node_shapes(communities):
     return list(OrderedDict(sorted(node_shapes.items())).values())
 
 def drawNetwork(G, communities, labels=True, ax=None):
-    node_size = 300
-    edge_width = 0.3
-    font_size = 13
+    node_size = 1200
+    edge_width = 1.2
+    font_size = 25
 
     # position map
     # pos = nx.spring_layout(G)
-    # pos = nx.kamada_kawai_layout(G)
+    pos = nx.kamada_kawai_layout(G)
     # pos = nx.planar_layout(G)
-    pos = community_layout(communities)
+    # pos = community_layout(communities)
 
     # community ids
     color_idc = [v for v in communities.values()]
