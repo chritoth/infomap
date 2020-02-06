@@ -15,6 +15,7 @@ plt.rcParams.update({'font.family': 'sans-serif'})
 plt.rcParams.update({'lines.linewidth': 3})
 plt.rcParams.update({'lines.markersize': 10})
 plt.rcParams.update({'lines.markeredgewidth': 3})
+plt.rcParams.update({'axes.labelpad': 20})
 plt.rcParams['text.latex.preamble'] = [
        r'\usepackage{amsmath,amssymb,amsfonts,amsthm}',
        r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
