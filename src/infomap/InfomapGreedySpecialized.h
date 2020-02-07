@@ -369,11 +369,6 @@ double InfomapGreedySpecialized<FlowUndirected>::getDeltaCodelengthOnMovingNode(
   }
 
   deltaL = -delta_stay_log_stay + delta_stay_log_flow - delta_leave_log_leave + delta_leave_log_flow;
-  if (m_config.verbosity)
-  {
-    Log() << "\n--> getDeltaCodelengthOnMovingNode: moving node " << current.id << " from module " << oldModule + 1;
-    Log() << " to module " << newModule + 1 << "; deltaL =" << deltaL << std::endl << std::flush;
-  }
   return deltaL;
 }
 

@@ -145,7 +145,7 @@ protected:
 	double enter_log_enter;
 	double enterFlow;
 	double enterFlow_log_enterFlow;
-	// for alternative cost function
+	// for altmap cost function
 	double stay_log_stay;
 	double leave_log_leave;
 	double stay_log_flow;

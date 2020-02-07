@@ -1249,7 +1249,6 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 	bool initiatedWithModules = haveModules();
 	if (initiatedWithModules)
 	{
-		Log() << "Partitioning initiated with modules!\n" << std::flush << std::endl;
 	  // Delete possible sub-modules and move nodes into current modular structure
 		deleteSubLevels();
 		unsigned int i = 0;
@@ -1337,14 +1336,11 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 		while (numTopModules() > 1)
 		{
 			++m_tuneIterationIndex;
-      Log() << "\n Tuning interation: " << m_tuneIterationIndex << " doFineTune = " << doFineTune << std::endl;
 
-      // TODO: disable coarse tuning for both cost functions when using predefined cluster data (!!comparability!!)
-      // if (m_config.clusterDataFile != "") //
-      // TODO: hacky solution for ?bug? in >coarseTune()< when using predefined cluster data with altmap
-      if (m_config.altmap && m_config.clusterDataFile != "")
+			// disable coarse tuning for altmap cost function
+			if (m_config.altmap)
       {
-        Log() << "\n Coarse tuning disabled (using predefined clusters)!" << std::endl;
+        // Log() << "\n Coarse tuning disabled for --altmap!" << std::endl;
         doFineTune = true;
         coarseTuned = true;
       }
