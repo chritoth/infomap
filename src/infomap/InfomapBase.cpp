@@ -1338,12 +1338,12 @@ void InfomapBase::partition(unsigned int recursiveCount, bool fast, bool forceCo
 			++m_tuneIterationIndex;
 
 			// disable coarse tuning for altmap cost function
-			if (m_config.altmap)
+			/*if (m_config.altmap)
       {
         // Log() << "\n Coarse tuning disabled for --altmap!" << std::endl;
         doFineTune = true;
         coarseTuned = true;
-      }
+      }*/
 
 			if (doFineTune)
 			{
