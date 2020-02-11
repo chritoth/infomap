@@ -1,62 +1,42 @@
-import networkx as nx
-import matplotlib.pyplot as plt
-import numpy as np
 import os
-import pandas as pd
 import time
-from sklearn.cluster import SpectralClustering
 from collections import OrderedDict
-from matplotlib.colors import ListedColormap
 
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import pandas as pd
+from sklearn.cluster import SpectralClustering
 
-plt.rcParams.update({'font.size': 20})
-plt.rcParams.update({'text.usetex': True})
-plt.rcParams.update({'font.family': 'sans-serif'})
-plt.rcParams.update({'lines.linewidth': 3})
-plt.rcParams.update({'lines.markersize': 10})
-plt.rcParams.update({'lines.markeredgewidth': 3})
-plt.rcParams.update({'axes.labelpad': 20})
-plt.rcParams['text.latex.preamble'] = [
-       r'\usepackage{amsmath,amssymb,amsfonts,amsthm}',
-       r'\usepackage{siunitx}',   # i need upright \micro symbols, but you need...
-       r'\sisetup{detect-all}',   # ...this to force siunitx to actually use your fonts
-       r'\usepackage{helvet}',    # set the normal font here
-       r'\usepackage{sansmath}',  # load up the sansmath so that math -> helvet
-       r'\sansmath'               # <- tricky! -- gotta actually tell tex to use!
-]
-
-# params
+# paths
 infomap_path = '~/infomap/Infomap'
 workspace_path = './workspace/'
 filename = 'test'
 
-# define colormap
-colors = np.array([[255,   0,   0, 255],
-                   [  0, 255,   0, 255],
-                   [100,   0, 100, 255],
-                   [  0,   0, 255, 255],
-                   [255, 255,   0, 255],
-                   [  0, 255, 255, 255],
-                   [200,   0, 100, 255],
-                   [  0,   0, 100, 255],
-                   [240, 130,   0, 255],
-                   [255,   0, 255, 255],
-                   [  0, 100,   0, 255],
-                   [100,   0,   0, 255],
-                   [  0,   0,   0, 255]]) / 255.0
-commColors = ListedColormap(colors, name='commColors', N=len(colors))
 
+def init_plt_params():
+    plt.rcParams.update({'font.size': 20})
+    plt.rcParams.update({'text.usetex': True})
+    plt.rcParams.update({'font.family': 'sans-serif'})
+    plt.rcParams.update({'lines.linewidth': 3})
+    plt.rcParams.update({'lines.markersize': 10})
+    plt.rcParams.update({'lines.markeredgewidth': 3})
+    plt.rcParams.update({'axes.labelpad': 20})
+    plt.rcParams['text.latex.preamble'] = [
+        r'\usepackage{amsmath,amssymb,amsfonts,amsthm}',
+        r'\usepackage{siunitx}',  # i need upright \micro symbols, but you need...
+        r'\sisetup{detect-all}',  # ...this to force siunitx to actually use your fonts
+        r'\usepackage{helvet}',  # set the normal font here
+        r'\usepackage{sansmath}',  # load up the sansmath so that math -> helvet
+        r'\sansmath'  # <- tricky! -- gotta actually tell tex to use!
+    ]
 
-
-if not os.path.exists(workspace_path):
-    os.mkdir(workspace_path)
 
 def read_tree(tree_path):
     df = pd.read_csv(tree_path, sep=' ', header=1)
     df.columns = ['community', 'flow', 'name', 'node', 'trash']
     df = df.drop(['flow', 'trash'], axis=1)
     df['community'] = df['community'].apply(lambda x: x.split(':')[0])
-
     return df
 
 
@@ -74,9 +54,11 @@ def plogp(p):
 
     return p * np.log2(p)
 
+
 def get_num_communities(communities):
     comm_ids = np.unique([v for v in communities.values()])
     return len(comm_ids)
+
 
 # get nodes grouped per community
 def nodes_per_community(communities):
@@ -91,6 +73,7 @@ def nodes_per_community(communities):
         comm_sizes[i] = len(community_nodes)
 
     return comm_ids, comm_nodes, comm_sizes
+
 
 # compute node positions for communities placed in a circular manner
 def community_layout(communities):
@@ -128,6 +111,7 @@ def community_layout(communities):
 
     return OrderedDict(sorted(node_positions.items()))
 
+
 def get_node_shapes(communities):
     N = len(communities)
 
@@ -136,9 +120,10 @@ def get_node_shapes(communities):
 
     node_shapes = dict()
     for nodes, comm_size in zip(comm_nodes, comm_sizes):
-        node_shapes.update(zip(nodes, ['s']*comm_size))
+        node_shapes.update(zip(nodes, ['s'] * comm_size))
 
     return list(OrderedDict(sorted(node_shapes.items())).values())
+
 
 def drawNetwork(G, communities, labels=True, ax=None):
     node_size = 1200
@@ -177,18 +162,13 @@ def drawNetwork(G, communities, labels=True, ax=None):
         plt.axis('off')
         plt.show()
 
+
 # compute altmap cost
 def altmap_cost(G, communities):
     # compute stationary and conditional distribution for the nodes
     pagerank = nx.pagerank_numpy(G, alpha=0.95)
     p_nodes = np.array([[val] for val in pagerank.values()])
     p_node_transitions = nx.google_matrix(G, alpha=1.0).T
-
-    # print (f'Stationary distribution = {p_nodes}')
-    # print (f'Transition matrix = {p_node_transitions}')
-    # if we dont trust the page rank results (works for undir networks)
-    # p_nodes = np.linalg.matrix_power(p_node_transitions, 100000).dot(p_nodes)
-    # p_nodes /= np.sum(p_nodes)
 
     # compute stationary and joint distribution for the communities
     num_communities = max(communities.values()) - min(communities.values()) + 1
@@ -209,9 +189,6 @@ def altmap_cost(G, communities):
                 p_comm_stay[comm_idx] += p_nodes[alpha] * p_node_transitions[beta, alpha]
 
     p_comm_leave = p_comm - p_comm_stay
-
-    # print (f'P_comm is {p_comm}.\n')
-    # print (f'P_comm_leave is {p_comm_leave}.\n')
 
     # compute altmap cost
     epsilon = 1e-18  # vicinity threshold for numerical stability
@@ -236,6 +213,7 @@ def altmap_cost(G, communities):
     # print (f'Node entropy H(x) =  {H_x}.\n')
     return cost
 
+
 def generate_initfile(G, method='random'):
     # random is default method
 
@@ -254,7 +232,7 @@ def generate_initfile(G, method='random'):
         num_communities = np.max(labels)
     elif method == 'twomodule':
         num_communities = 2
-        labels = [1] * int(N/2) + [2] * (N - int(N/2))
+        labels = [1] * int(N / 2) + [2] * (N - int(N / 2))
     else:
         num_communities = int(np.sqrt(N))
         labels = np.random.randint(1, num_communities + 1, node_ids.shape)
@@ -277,11 +255,12 @@ def generate_initfile(G, method='random'):
             for node_id in community:
                 n += 1
 
-                node_flow = p_nodes[node_id - 1]#, 0]
+                node_flow = p_nodes[node_id - 1]  # , 0]
                 init_file.write(str(community_id) + ':' + str(n) + ' ' + str(node_flow))
                 init_file.write(' ' + '\"' + str(node_id) + '\"' + ' ' + str(node_id) + '\n')
 
     return communities, num_communities
+
 
 def read_communities_from_tree_file():
     df = read_tree(workspace_path + filename + '.tree')
@@ -297,15 +276,18 @@ def read_communities_from_tree_file():
 
 
 def infomap(G, altmap=False, init='std', update_inputfile=True, additional_args=''):
+    if not os.path.exists(workspace_path):
+        os.mkdir(workspace_path)
+
     # write graph to input file
     input_path = workspace_path + filename + '.net'
     if update_inputfile:
         nx.write_pajek(G, input_path)
 
     # construct argument string
-    args = ' -2 -u ' # two-level, undirected network, verbose output
+    args = ' -2 -u '  # two-level, undirected network, verbose output
     if altmap:
-        args += ' --altmap ' # use altmap cost, teleport to nodes rather than edges
+        args += ' --altmap '  # use altmap cost, teleport to nodes rather than edges
 
     if init not in {'std', 'random', 'twomodule', 'sc'}:
         init = 'std'
@@ -321,7 +303,8 @@ def infomap(G, altmap=False, init='std', update_inputfile=True, additional_args=
     os.system(infomap_path + ' ' + input_path + ' ' + workspace_path + ' ' + args)
 
     communities_found, num_communities_found = read_communities_from_tree_file()
-    return  communities_found, num_communities_found, communities_init, num_communities_init
+    return communities_found, num_communities_found, communities_init, num_communities_init
+
 
 # compute altmap module cost
 def altmap_module_cost(p_comm, p_comm_leave):
