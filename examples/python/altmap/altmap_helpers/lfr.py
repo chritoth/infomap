@@ -50,15 +50,10 @@ def compute_score(communities_true, communities_found):
 def avg_community_clusterings(G, communities):
     _, comm_nodes, _ = nodes_per_community(communities)
     num_comms = len(comm_nodes)
-    comm_clusterings = []
-    for i in range(num_comms):
-        tmp_list = comm_nodes.copy()
-        tmp_list.pop(i)
-        tmp_list = [node for comm in tmp_list for node in comm]
-
-        G_tmp = G.copy()
-        G_tmp.remove_nodes_from(tmp_list)
-        comm_clusterings.append(nx.average_clustering(G_tmp))
+    comm_clusterings = np.zeros((num_comms,))
+    for i, nodes in enumerate(comm_nodes):
+        subgraph = nx.subgraph(G, nodes).copy()  # copy makes nx.avg_clustering() faster -.-
+        comm_clusterings[i] = nx.average_clustering(subgraph)
 
     return np.mean(comm_clusterings), np.min(comm_clusterings)
 
@@ -125,10 +120,11 @@ class BenchmarkResults:
 # num_realizations .. number of network realizations for each parameter pair (mu, N)
 def run_benchmark(N_list: list, mu_list: list, num_realizations=10):
     N = N_list[0]
+    mu = mu_list[0]
+
     var_list = mu_list
     vary_mu = True
     if len(N_list) > 1:
-        mu = mu_list[0]
         var_list = N_list
         vary_mu = False
 
