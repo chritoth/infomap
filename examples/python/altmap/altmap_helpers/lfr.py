@@ -118,7 +118,7 @@ class BenchmarkResults:
 
 # LFR Benchmark
 # num_realizations .. number of network realizations for each parameter pair (mu, N)
-def run_benchmark(N_list: list, mu_list: list, num_realizations=10):
+def run_benchmark(N_list: list, mu_list: list, num_realizations=10, do_sci = True):
     N = N_list[0]
     mu = mu_list[0]
 
@@ -154,6 +154,12 @@ def run_benchmark(N_list: list, mu_list: list, num_realizations=10):
 
             realization_idx += 1
 
+            # compute community clustering
+            acc_mean, acc_min = avg_community_clusterings(G, communities_true)
+            acc_results.scores[realization_idx, var_idx] = acc_mean
+            acc_results.errors[realization_idx, var_idx] = acc_min
+            print(f'Avg community clustering is {acc_mean}, minimum is {acc_min}.')
+
             # test infomap
             communities_found, num_communities_found, _, _ = infomap(G, altmap=False)
             print(f'Infomap found {num_communities_found} communities vs. {num_communities_true} ground truth '
@@ -175,6 +181,9 @@ def run_benchmark(N_list: list, mu_list: list, num_realizations=10):
             altmap_results.errors[realization_idx, var_idx] = error
 
             # test altmap with SCI
+            if not do_sci:
+                continue
+
             communities_found, num_communities_found, \
                 communities_init, num_communities_init = infomap(G, altmap=True, init='sc', update_inputfile=False)
             print(f'Altmap with SCI ({num_communities_init}) found {num_communities_found} communities vs. '
@@ -189,12 +198,6 @@ def run_benchmark(N_list: list, mu_list: list, num_realizations=10):
             sci_results.scores[realization_idx, var_idx] = score
             error = num_communities_init / num_communities_true - 1.0
             sci_results.errors[realization_idx, var_idx] = error
-
-            # compute community clustering
-            acc_mean, acc_min = avg_community_clusterings(G, communities_true)
-            acc_results.scores[realization_idx, var_idx] = acc_mean
-            acc_results.errors[realization_idx, var_idx] = acc_min
-            print(f'Avg community clustering is {acc_mean}, minimum is {acc_min}.')
 
         # store actual number of realizations
         infomap_results.actual_realizations[var_idx] = realization_idx + 1
