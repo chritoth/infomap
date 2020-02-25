@@ -166,9 +166,9 @@ def drawNetwork(G, communities, labels=True, ax=None):
 # compute altmap cost
 def altmap_cost(G, communities):
     # compute stationary and conditional distribution for the nodes
-    pagerank = nx.pagerank_numpy(G, alpha=0.95)
+    pagerank = nx.pagerank_scipy(G, alpha=0.85, tol=1e-04)
     p_nodes = np.array([[val] for val in pagerank.values()])
-    p_node_transitions = nx.google_matrix(G, alpha=1.0).T
+    p_node_transitions = nx.google_matrix(G, alpha=0.85).T
 
     # compute stationary and joint distribution for the communities
     num_communities = max(communities.values()) - min(communities.values()) + 1
@@ -191,22 +191,13 @@ def altmap_cost(G, communities):
     p_comm_leave = p_comm - p_comm_stay
 
     # compute altmap cost
-    epsilon = 1e-18  # vicinity threshold for numerical stability
     cost_per_module = np.zeros((num_communities, 1))
     for i in range(num_communities):
-
-        # check for edge cases
-        if (p_comm[i] <= epsilon) or (p_comm[i] + epsilon >= 1.0):
-            continue
-
-        cost_per_module[i] -= plogp(p_comm_stay[i])
-        cost_per_module[i] += 2.0 * plogq(p_comm_stay[i], p_comm[i])
-        cost_per_module[i] -= plogp(p_comm_leave[i])
-        cost_per_module[i] += plogq(p_comm_leave[i], p_comm[i] * (1.0 - p_comm[i]))
+        cost_per_module[i] = altmap_module_cost(p_comm[i], p_comm_leave[i])
         # print (f'Cost for module {i+1} is {cost_per_module[i]}.\n')
 
     cost = np.sum(cost_per_module)
-    max_cost = H_x + H_nodes
+    # max_cost = H_x + H_nodes
     # print (f'Maximum cost is {max_cost}.\n')
     # print(f'AltMap cost is {cost}.')
     # print (f'Total cost would be {max_cost + cost}.\n')
@@ -282,10 +273,11 @@ def infomap(G, altmap=False, init='std', update_inputfile=True, additional_args=
     # write graph to input file
     input_path = workspace_path + filename + '.net'
     if update_inputfile:
-        nx.write_pajek(G, input_path)
+        # nx.write_pajek(G, input_path)
+        nx.write_edgelist(G, input_path)
 
     # construct argument string
-    args = ' -2 -u '  # two-level, undirected network, verbose output
+    args = ' -2 -u --input-format link-list'  # two-level, undirected network, verbose output
     if altmap:
         args += ' --altmap '  # use altmap cost, teleport to nodes rather than edges
 
