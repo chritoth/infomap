@@ -168,7 +168,7 @@ def altmap_cost(G, communities):
     # compute stationary and conditional distribution for the nodes
     pagerank = nx.pagerank_scipy(G, alpha=0.85, tol=1e-04)
     p_nodes = np.array([[val] for val in pagerank.values()])
-    p_node_transitions = nx.google_matrix(G, alpha=0.85).T
+    p_node_transitions = nx.google_matrix(G, alpha=1.0).T
 
     # compute stationary and joint distribution for the communities
     num_communities = max(communities.values()) - min(communities.values()) + 1
