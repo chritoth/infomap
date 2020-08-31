@@ -65,6 +65,7 @@ struct Config
 	 	noInfomap(false),
 	 	undirectedMultilayer(false),
 	 	expandUndirectedToDirected(false),
+	 	synwalk(false),
 	 	twoLevel(false),
 		directed(false),
 		undirdir(false),
@@ -149,6 +150,7 @@ struct Config
 	 	noInfomap(other.noInfomap),
 	 	undirectedMultilayer(other.undirectedMultilayer),
 	 	expandUndirectedToDirected(other.expandUndirectedToDirected),
+	 	synwalk(other.synwalk),
 	 	twoLevel(other.twoLevel),
 		directed(other.directed),
 		undirdir(other.undirdir),
@@ -235,6 +237,7 @@ struct Config
 	 	noInfomap = other.noInfomap;
 	 	undirectedMultilayer = other.undirectedMultilayer;
 	 	expandUndirectedToDirected = other.expandUndirectedToDirected;
+    synwalk = other.synwalk;
 	 	twoLevel = other.twoLevel;
 		directed = other.directed;
 		undirdir = other.undirdir;
@@ -462,6 +465,7 @@ struct Config
 	bool expandUndirectedToDirected;
 
 	// Core algorithm
+  bool synwalk;
 	bool twoLevel;
 	bool directed;
 	bool undirdir;

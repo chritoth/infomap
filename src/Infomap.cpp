@@ -174,6 +174,8 @@ std::vector<ParsedOption> getConfig(Config& conf, const std::string& flags, bool
 			"Print result to file for all trials (if more than one), with the trial number in each file.", true);
 
 	// --------------------- Core algorithm options ---------------------
+  api.addOptionArgument(conf.synwalk, "synwalk", "Use the synwalk objective instead of the map equation.");
+
 	api.addOptionArgument(conf.twoLevel, '2', "two-level",
 			"Optimize a two-level partition of the network.");
 
