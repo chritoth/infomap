@@ -1,45 +1,21 @@
-# Infomap Software Package
+# Synwalk - Community Detection via Random Walk Modelling
 
-Infomap is a network clustering algorithm based on the
-[Map equation](http://www.mapequation.org/publications.html#Rosvall-Axelsson-Bergstrom-2009-Map-equation).
-
-For more info, see [www.mapequation.org](http://www.mapequation.org).
+Synwalk is a method for community detection in weighted networks with two-level hierarchies. This repository contains an integration of the Synwalk objective function into the [Infomap Software Package](https://github.com/mapequation/infomap) (see also see [www.mapequation.org](http://www.mapequation.org)), while preserving Infomap's original functionality. See [here](https://github.com/synwalk/synwalk-analysis) for an evaluation framework of our method.
 
 
 Getting started:
 --------------------------------------------------------
-In a terminal with the GNU Compiler Collection installed,
-just run `make` in the current directory to compile the
-code with the included `Makefile`. Call `./Infomap` to run.
-
-Run `./Infomap --help` or visit [options](http://www.mapequation.org/code.html#Options)
-for a list of available options.
-
-Infomap can be used both as a standalone program and as a library.
-See the `examples` folder for examples.
-
-We also include a [Jupyter notebook](examples/python/infomap-examples.ipynb)
-with the examples that can be viewed online.
+In a terminal with the GNU Compiler Collection installed, just run `make` in the current directory to compile the,code with the included `Makefile`. Call `./Infomap --synwalk` to run Synwalk (omit the `--synwalk` argument to run Infomap instead). Run `./Infomap --help` for a list of available options.
 
 
 Authors:
 --------------------------------------------------------
-Daniel Edler
-Martin Rosvall
+[Christian Toth](https://github.com/chritoth).
 
-For contact information, see 
-http://www.mapequation.org/about.html
+See http://www.mapequation.org/about.html for information about Daniel Edler, and Martin Rosvall, who are the authors of the original package.
 
-For a list of recent feature updates, see
-CHANGES.txt in the source directory.
 
 Terms of use:
 --------------------------------------------------------
-The Infomap software is released under a dual licence.
-
-To give everyone maximum freedom to make use of Infomap 
-and derivative works, we make the code open source under 
-the GNU Affero General Public License version 3 or any 
-later version (see LICENSE_AGPLv3.txt.)
-
-For a non-copyleft license, please contact us.
+The Infomap software is released under the GNU Affero General Public License version 3
+or any later version (see LICENSE_AGPLv3.txt.), which we retain for this derivative work.
