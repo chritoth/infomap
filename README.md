@@ -1,6 +1,6 @@
 # Synwalk - Community Detection via Random Walk Modelling
 
-Synwalk is a method for community detection in weighted networks with two-level hierarchies. This repository contains an integration of the Synwalk objective function into the [Infomap Software Package](https://github.com/mapequation/infomap) (see also see [www.mapequation.org](http://www.mapequation.org)), while preserving Infomap's original functionality. See [here](https://github.com/synwalk/synwalk-analysis) for an evaluation framework of our method.
+Synwalk is a method for community detection in weighted networks with two-level hierarchies as proposed [here](http://arxiv.org/abs/2101.08623). This repository contains an integration of the Synwalk objective function into the [Infomap Software Package](https://github.com/mapequation/infomap) (see also see [www.mapequation.org](http://www.mapequation.org)), while preserving Infomap's original functionality. See [here](https://github.com/synwalk/synwalk-analysis) for an evaluation framework of our method.
 
 
 Getting started:
